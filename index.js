@@ -56,3 +56,30 @@ async function getTweetMetrics(tweetId) {
         console.error('Error fetching tweet data:', error);
     }
 }
+
+client.on('messageCreate', async (message) => {
+    // Check if the message is in the specific channel and contains a Twitter link
+    if (message.channel.name === 'ambassador-tweets' && message.content.includes('twitter.com')) {
+        const tweetId = extractTweetId(message.content);
+
+        const metrics = await getTweetMetrics(tweetId);
+
+      // Calculate points
+        const points = calculatePoints(metrics);
+        console.log(`Total points for this tweet: ${points}`);
+
+      // You can then store these points for the user in a database or a simple map.
+    }
+});
+
+  // Helper function to extract the Tweet ID from the URL
+function extractTweetId(url) {
+    const regex = /status\/(\d+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+
+  // Function to calculate points based on tweet metrics
+function calculatePoints({ likeCount, retweetCount, replyCount, impressionCount }) {
+    return (likeCount * 0.5) + (retweetCount * 2) + (replyCount * 1) + (impressionCount * 0.05);
+}
