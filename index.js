@@ -135,5 +135,27 @@ client.on('messageCreate', async (message) => {
     }
 });
 
+const referrals = {};
+
+client.on('messageCreate', (message) => {
+    if (message.content.startsWith('!refer')) {
+    const mentionedUser = message.mentions.users.first();
+    
+        if (mentionedUser) {
+        const referrerId = message.author.id;
+        const referredId = mentionedUser.id;
+
+      // Store the referral
+        if (!referrals[referrerId]) {
+        referrals[referrerId] = [];
+    }
+        referrals[referrerId].push(referredId);
+
+        message.channel.send(`${message.author.username} has referred ${mentionedUser.username}`);
+    }
+}
+});
+
+
 
 
