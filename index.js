@@ -93,7 +93,7 @@ userPoints[discordUserId] += points;
 
 // Example: Adding points when a new tweet link is posted
 client.on('messageCreate', async (message) => {
-    if (message.channel.name === 'ambassador-tweets' && message.content.includes('twitter.com')) {
+    if (message.channel.name === 'ambassador-tweets' && message.content.includes('x.com')) {
     const tweetId = extractTweetId(message.content);
     const metrics = await getTweetMetrics(tweetId);
     const points = calculatePoints(metrics);
@@ -102,4 +102,38 @@ client.on('messageCreate', async (message) => {
     console.log(`User ${message.author.username} has ${userPoints[message.author.id]} points.`);
 }
 });
+
+async function assignRoles(message) {
+    const guild = message.guild;
+
+        for (const [userId, points] of Object.entries(userPoints)) {
+        const member = await guild.members.fetch(userId);
+        let newRole;
+
+        if (points >= 5000) {
+        newRole = 'Expert';
+        } else if (points >= 750) {
+        newRole = 'Advanced';
+    } else if (points >= 250) {
+        newRole = 'Intermediate';
+    } else {
+        newRole = 'Novice';
+    }
+
+      // Assign the new role to the member
+    const role = guild.roles.cache.find(r => r.name === newRole);
+        if (role) {
+        await member.roles.add(role);
+        console.log(`Assigned ${newRole} role to ${member.user.username}`);
+    }
+    }
+}
+
+client.on('messageCreate', async (message) => {
+    if (message.content === '!assignRoles') {
+        await assignRoles(message);
+    }
+});
+
+
 
