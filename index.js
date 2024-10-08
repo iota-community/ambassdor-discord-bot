@@ -59,7 +59,7 @@ async function getTweetMetrics(tweetId) {
 
 client.on('messageCreate', async (message) => {
     // Check if the message is in the specific channel and contains a Twitter link
-    if (message.channel.name === 'ambassador-tweets' && message.content.includes('twitter.com')) {
+    if (message.channel.name === 'ambassador-tweets' && message.content.includes('x.com')) {
         const tweetId = extractTweetId(message.content);
 
         const metrics = await getTweetMetrics(tweetId);
@@ -83,3 +83,23 @@ function extractTweetId(url) {
 function calculatePoints({ likeCount, retweetCount, replyCount, impressionCount }) {
     return (likeCount * 0.5) + (retweetCount * 2) + (replyCount * 1) + (impressionCount * 0.05);
 }
+
+function addPointsToUser(discordUserId, points) {
+    if (!userPoints[discordUserId]) {
+    userPoints[discordUserId] = 0;
+}
+userPoints[discordUserId] += points;
+}
+
+// Example: Adding points when a new tweet link is posted
+client.on('messageCreate', async (message) => {
+    if (message.channel.name === 'ambassador-tweets' && message.content.includes('twitter.com')) {
+    const tweetId = extractTweetId(message.content);
+    const metrics = await getTweetMetrics(tweetId);
+    const points = calculatePoints(metrics);
+
+    addPointsToUser(message.author.id, points);
+    console.log(`User ${message.author.username} has ${userPoints[message.author.id]} points.`);
+}
+});
+
