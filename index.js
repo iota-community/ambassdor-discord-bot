@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const { extractTweetId, calculatePoints, assignRoles, getTweetMetrics } = require('./helpers/helpers');
+
 const {TwitterApi} = require('twitter-api-v2');
 const token = process.env.TOKEN;
 const userPoints = {};

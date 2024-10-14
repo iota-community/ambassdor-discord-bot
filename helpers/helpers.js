@@ -1,4 +1,4 @@
-// Helper function to extract the Tweet ID from the URL
+  // Helper function to extract the Tweet ID from the URL
 export function extractTweetId(url) {
     const regex = /status\/(\d+)/;
     const match = url.match(regex);
@@ -57,5 +57,12 @@ async function getTweetMetrics(tweetId) {
     }
 }
 
-module.exports.assignRole = assignRoles;
-module.exports.getTweetMetrics = getTweetMetrics
+// module.exports.assignRole = assignRoles;
+// module.exports.getTweetMetrics = getTweetMetrics
+
+module.exports = {
+    extractTweetId,
+    calculatePoints,
+    assignRoles,
+    getTweetMetrics
+};
