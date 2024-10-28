@@ -1,12 +1,15 @@
-  // Helper function to extract the Tweet ID from the URL
-export function extractTweetId(url) {
+const { Scraper } = require('@the-convocation/twitter-scraper');
+
+
+// Helper function to extract the Tweet ID from the URL
+function extractTweetId(url) {
     const regex = /status\/(\d+)/;
     const match = url.match(regex);
     return match ? match[1] : null;
 }
 
 // Function to calculate points based on tweet metrics
-export function calculatePoints({ likeCount, retweetCount, replyCount, impressionCount }) {
+function calculatePoints({ likeCount, retweetCount, replyCount, impressionCount }) {
     return (likeCount * 0.5) + (retweetCount * 2) + (replyCount * 1) + (impressionCount * 0.05);
 }
 
@@ -36,33 +39,13 @@ async function assignRoles(message) {
     }
 }
 
-async function getTweetMetrics(tweetId) {
-    try {
-        const tweet = await twitterClient.v2.singleTweet(tweetId, {
-        'tweet.fields': 'public_metrics',
-    });
-
-    // Extracting metrics
-    const { like_count, retweet_count, reply_count, impression_count } = tweet.data.public_metrics;
-    console.log(`Likes: ${like_count}, Retweets: ${retweet_count}, Replies: ${reply_count}, Impressions: ${impression_count}`);
-
-    return {
-        likeCount: like_count,
-        retweetCount: retweet_count,
-        replyCount: reply_count,
-        impressionCount: impression_count
-    };
-    } catch (error) {
-        console.error('Error fetching tweet data:', error);
-    }
+async function fetchTweet(tweetId) {
+    const scraper = new Scraper();
+    const tweet = await scraper.getTweet(tweetId);
+    return tweet;
 }
 
-// module.exports.assignRole = assignRoles;
-// module.exports.getTweetMetrics = getTweetMetrics
-
-module.exports = {
-    extractTweetId,
-    calculatePoints,
-    assignRoles,
-    getTweetMetrics
-};
+module.exports.assignRole = assignRoles;
+module.exports.fetchTweet = fetchTweet
+module.exports.extractTweetId = extractTweetId
+module.exports.calculatePoints  = calculatePoints

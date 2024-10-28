@@ -1,17 +1,26 @@
-import { addRxPlugin } from 'rxdb';
-import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
-import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
-import { ambassadorSchema } from './embassador_schema';
+const Sequelize = require('sequelize');
 
-addRxPlugin(RxDBDevModePlugin);
+// The ambassador model
+const Ambassador = {
+	id: {
+		type: Sequelize.STRING,
+		unique: true,
+    primaryKey: true,
+	},
+  tweeter_id: {
+    type: Sequelize.STRING,
+		unique: true,
+  },
+	tweets: {
+    type: Sequelize.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+  },
+  points: {
+    type: Sequelize.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+  },
+};
 
-const ambassadorDB = await createRxDatabase({
-    name: 'ambassadors',
-    storage: getRxStorageDexie()
-});
-
-await ambassadorDB.addCollections({
-    ambassadors: {
-    schema: ambassadorSchema
-    }
-});
+module.exports.Ambassador = Ambassador;
