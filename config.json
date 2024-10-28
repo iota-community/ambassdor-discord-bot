@@ -1,0 +1,6 @@
+{
+	"clientId": "",
+	"guildId": "",
+	"token": "",
+    "redirectURL":"https://discord.com/oauth2/authorize?client_id=1295339903294509089&response_type=token&redirect_uri=https%3A%2F%2Fdiscord.com%2Fchannels%2F1295309202943770624%2F1295309202943770627&scope=identify+connections"
+}
