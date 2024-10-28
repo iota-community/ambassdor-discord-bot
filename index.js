@@ -1,12 +1,15 @@
 require("dotenv").config();
-
-const { extractTweetId, calculatePoints, assignRoles, getTweetMetrics } = require('./helpers/helpers');
-
 const {TwitterApi} = require('twitter-api-v2');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
 const token = process.env.TOKEN;
 const userPoints = {};
 
-const { Client, GatewayIntentBits } = require('discord.js');
 const client = new Client({
 intents: [
     GatewayIntentBits.Guilds,
@@ -16,85 +19,32 @@ intents: [
 ],
 });
 
-// Initialize Twitter Client
-const twitterClient = new TwitterApi({
-    appKey: process.env.API_KEY,
-    appSecret: process.env.API_KEY_SECRET,
-    accessToken: process.env.ACCESS_TOKEN,
-    accessSecret: process.env.ACCESS_TOKEN_SECRET,
-});
+client.commands = new Collection();
+const foldersPath = path.join(__dirname, 'commands');
+const commandFolders = fs.readdirSync(foldersPath);
 
-console.log('Twitter client initialized with environment variables');
-
-client.once('ready', () => {
-console.log('Bot is online!');
-});
-
-client.on('messageCreate', message => {
-if (message.content === '!ping') {
-    message.channel.send('Pong!');
+for (const folder of commandFolders) {
+	const commandsPath = path.join(foldersPath, folder);
+	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+	for (const file of commandFiles) {
+		const filePath = path.join(commandsPath, file);
+		const command = require(filePath);
+		if ('data' in command && 'execute' in command) {
+			client.commands.set(command.data.name, command);
+		} else {
+			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+		}
+	}
 }
-});
+
+for (const file of eventFiles) {
+	const filePath = path.join(eventsPath, file);
+	const event = require(filePath);
+	if (event.once) {
+		client.once(event.name, (...args) => event.execute(...args));
+	} else {
+		client.on(event.name, (...args) => event.execute(...args));
+	}
+}
 
 client.login(token);
-
-client.on('messageCreate', async (message) => {
-    // Check if the message is in the specific channel and contains a Twitter link
-    if (message.channel.name === 'ambassador-tweets' && message.content.includes('x.com')) {
-        const tweetId = extractTweetId(message.content);
-
-        const metrics = await getTweetMetrics(tweetId);
-
-      // Calculate points
-        const points = calculatePoints(metrics);
-        console.log(`Total points for this tweet: ${points}`);
-
-      // You can then store these points for the user in a database or a simple map.
-    }
-});
-
-function addPointsToUser(discordUserId, points) {
-    if (!userPoints[discordUserId]) {
-    userPoints[discordUserId] = 0;
-}
-userPoints[discordUserId] += points;
-}
-
-// Example: Adding points when a new tweet link is posted
-client.on('messageCreate', async (message) => {
-    if (message.channel.name === 'ambassador-tweets' && message.content.includes('x.com')) {
-    const tweetId = extractTweetId(message.content);
-    const metrics = await getTweetMetrics(tweetId);
-    const points = calculatePoints(metrics);
-
-    addPointsToUser(message.author.id, points);
-    console.log(`User ${message.author.username} has ${userPoints[message.author.id]} points.`);
-}
-});
-
-client.on('messageCreate', async (message) => {
-    if (message.content === '!assignRoles') {
-        await assignRoles(message);
-    }
-});
-
-const referrals = {};
-
-client.on('messageCreate', (message) => {
-    if (message.content.startsWith('!refer')) {
-    const mentionedUser = message.mentions.users.first();
-    
-        if (mentionedUser) {
-        const referrerId = message.author.id;
-        const referredId = mentionedUser.id;
-
-      // Store the referral
-        if (!referrals[referrerId]) {
-        referrals[referrerId] = [];
-    }
-        referrals[referrerId].push(referredId);
-
-        message.channel.send(`${message.author.username} has referred ${mentionedUser.username}`);
-    }
-}
-});
