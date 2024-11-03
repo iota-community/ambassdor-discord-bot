@@ -1,5 +1,22 @@
 const { Scraper } = require('@the-convocation/twitter-scraper');
+const { Ambassadors } = require('../models/database.js')
 
+const NOVICE_MAX = 249;
+const INTERMIDIATE_MIN = 250;
+const INTERMIDIATE_MAX = 749;
+const ADVANCED_MIN = 750;
+const ADVANCED_MAX = 4999;
+const EXPERT_MIN = 5000;
+
+const NOVICE_DECAY = 0;
+const INTERMIDIATE_DECAY = 100;
+const ADVANCED_DECAY = 250;
+const EXPERT_DECAY = 500;
+
+const NOVICE_ROLE = "Novice";
+const INTERMIDIATE_ROLE = "Intermidiate";
+const ADVANCED_ROLE = "Advanced";
+const EXPERT_ROLE = "Expert";
 
 // Helper function to extract the Tweet ID from the URL
 function extractTweetId(url) {
@@ -13,30 +30,99 @@ function calculatePoints({ likeCount, retweetCount, replyCount, impressionCount 
     return (likeCount * 0.5) + (retweetCount * 2) + (replyCount * 1) + (impressionCount * 0.05);
 }
 
-async function assignRoles(message) {
-    const guild = message.guild;
-
-    for (const [userId, points] of Object.entries(userPoints)) {
-        const member = await guild.members.fetch(userId);
-        let newRole;
-
-        if (points >= 5000) {
-            newRole = 'Expert';
-        } else if (points >= 750) {
-            newRole = 'Advanced';
-        } else if (points >= 250) {
-            newRole = 'Intermediate';
-        } else {
-            newRole = 'Novice';
-        }
-
-        // Assign the new role to the member
-        const role = guild.roles.cache.find(r => r.name === newRole);
-        if (role) {
-            await member.roles.add(role);
-            console.log(`Assigned ${newRole} role to ${member.user.username}`);
-        }
+function epochDecay(points) {
+    switch (true) {
+        case points <= NOVICE_MAX:
+            return points;
+        case (points >= INTERMIDIATE_MIN) && (points <= INTERMIDIATE_MAX):
+            points = points - INTERMIDIATE_DECAY;
+            return points;
+        case (points >= ADVANCED_MIN) && (points <= ADVANCED_MAX):
+            points = points - ADVANCED_DECAY;
+            return points;
+        case (points >= EXPERT_MIN):
+            points = points - EXPERT_DECAY
+            return points;
+        default:
+            return points;
     }
+}
+
+function knownRole(role) {
+    if(role.name === EXPERT_ROLE || role.name === NOVICE_ROLE 
+        ||role.name === INTERMIDIATE_ROLE || role.name == ADVANCED_ROLE) {
+            return true
+        }
+}
+
+function assignAmbassadorRole(guild, ambassador, curRole){
+    // Fetch a single member
+    guild.members.fetch(ambassador.id)
+        .then(member => {
+            const role = guild.roles.cache.find(role => role.name === curRole);
+            if (!role) return;
+            member.roles.add(role);
+        })
+        .catch(console.error);
+}
+
+async function unassignRole(guild, ambassador) {
+    // Fetch a single member
+    guild.members.fetch(ambassador.id)
+        .then(member => {
+            member.roles.cache.forEach(role => {
+                if (knownRole(role)){
+                    member.roles.remove(role, 'Unassign role')
+                    .then(() => console.log('Deleted the role')).catch(console.error);
+                }
+            });
+        })
+        .catch(console.error);
+}
+
+async function assignRoles(guild) {
+    const ambassadors = await Ambassadors.findAll({
+        attributes: ['id', 'points'],
+    });
+    
+    ambassadors.forEach( 
+        (ambassador) => {
+            // delete previous ambassador's role.
+            unassignRole(guild, ambassador).then(()=> {
+                            // Get current point.
+            let currentPoints = Number(ambassador.points);
+            // Account for epoch decay.
+            currentPoints = epochDecay(currentPoints);
+
+            Ambassadors.update({
+                points: currentPoints}, {where: {id: ambassador.id}}).then(affectedRows =>{
+                if (affectedRows > 0) {
+                    console.log(`User ${ambassador.id} points updated`);
+                } else {
+                    console.log(`User ${ambassador.id} failed to updated points`);
+                }
+            })
+
+            switch (true) {
+                case currentPoints <= NOVICE_MAX:
+                    assignAmbassadorRole(guild, ambassador, NOVICE_ROLE);
+                    return;
+                case (currentPoints >= INTERMIDIATE_MIN) && (currentPoints <= INTERMIDIATE_MAX):
+                    assignAmbassadorRole(guild, ambassador, INTERMIDIATE_ROLE);
+                    return; 
+                case (currentPoints >= ADVANCED_MIN) && (currentPoints <= ADVANCED_MAX):
+                    assignAmbassadorRole(guild, ambassador, ADVANCED_ROLE);
+                    return;
+                case (currentPoints >= EXPERT_MIN):
+                    assignAmbassadorRole(guild, ambassador, EXPERT_ROLE);
+                    return;
+                default:
+                    console.log(`No matching role`);
+            }
+
+            })
+        }
+    );
 }
 
 async function fetchTweet(tweetId) {
@@ -57,9 +143,49 @@ function has72HoursPassed(timestamp) {
     return (currentTime - givenTimeInMs) >= seventyTwoHoursInMs;
 }
 
+/**
+ * Schedule a task to run at a specified interval in seconds, starting from a given date.
+ * @param {Date} startDate - The starting date for the interval.
+ * @param {number} intervalInSeconds - Number of seconds between task executions.
+ * @param {function} task - The task to execute.
+ */
+function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
+    const MS_PER_SECOND = 1000;
+    const intervalInMs = intervalInSeconds * MS_PER_SECOND;
+  
+    const now = new Date();
+    const start = new Date(startDate);
+  
+    if (isNaN(start)) {
+      throw new Error("Invalid start date provided.");
+    }
+  
+    if (intervalInSeconds < 1) {
+      throw new Error("Interval must be at least one second.");
+    }
+  
+    // Calculate the time until the next interval from the start date
+    const timeSinceStart = now - start;
+    const timeUntilNextRun = (intervalInMs - (timeSinceStart % intervalInMs)) % intervalInMs;
+  
+    // Calculate the next run date
+    const nextRunDate = new Date(now.getTime() + timeUntilNextRun);
+    console.log(`Next epoch date: ${nextRunDate.toLocaleString()}`);
+  
+    // Set a timeout to start the interval at the next run date
+    setTimeout(() => {
+      // Execute the task once immediately at the calculated next run date
+      task(guild);
+  
+      // Schedule the task to run every `intervalInSeconds`
+      setInterval(() => task(guild), intervalInMs);
+    }, timeUntilNextRun);
+}
+
 
 module.exports.has72HoursPassed = has72HoursPassed;
-module.exports.assignRole = assignRoles;
-module.exports.fetchTweet = fetchTweet
-module.exports.extractTweetId = extractTweetId
-module.exports.calculatePoints = calculatePoints
+module.exports.assignRoles = assignRoles;
+module.exports.fetchTweet = fetchTweet;
+module.exports.extractTweetId = extractTweetId;
+module.exports.calculatePoints  = calculatePoints;
+module.exports.scheduleTaskFromDate = scheduleTaskFromDate;
