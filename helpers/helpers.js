@@ -1,5 +1,5 @@
 const { Scraper } = require('@the-convocation/twitter-scraper');
-const { Ambassadors, Messages } = require('../models/database.js')
+const { Ambassadors, Messages } = require('../models/database.js');
 
 const NOVICE_MAX = 249;
 const INTERMIDIATE_MIN = 250;
@@ -243,7 +243,28 @@ async function fetchPoints(client) {
     })
 }
 
+async function addPoints(discordId, points) {
+    const ambassadors = await Ambassadors.findOne({ where: { discordId } });
+    if (ambassadors) {
+        ambassadors.points += points;
+        await ambassadors.save();
+        return true;
+    }
+    return false;
+}
 
+async function deductPoints(discordId, points) {
+    const ambassadors = await Ambassadors.findOne({ where: { discordId } });
+    if (ambassadors) {
+        ambassadors.points -= points;
+        if (ambassadors.points < 0) ambassadors.points = 0; // Prevent negative points
+        await ambassadors.save();
+        return true;
+    }
+    return false;
+}
+
+module.exports = { addPoints, deductPoints };
 module.exports.has72HoursPassed = has72HoursPassed;
 module.exports.assignRoles = assignRoles;
 module.exports.fetchTweet = fetchTweet;
