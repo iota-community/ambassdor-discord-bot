@@ -1,9 +1,9 @@
 const { Events } = require('discord.js');
-const { Ambassadors } = require('../models/database.js');
+const { Ambassadors, Messages } = require('../models/database.js');
 const {epochStart, guildId} = require("../config.json")
-const {assignRoles, scheduleTaskFromDate} = require("../helpers/helpers.js")
+const {assignRoles, scheduleTaskFromDate, updatePoints} = require("../helpers/helpers.js")
 
-const epochInSeconds = 1209600; // Seconds in two weeks.
+const epochInSeconds = 120; // Seconds in two weeks.
 
 module.exports = {
 	name: Events.ClientReady,
@@ -14,9 +14,14 @@ module.exports = {
 			client.guilds.fetch(guildId).then(guild => {
 				// Reassign role every epoch
 				const epochStartDate = epochStart || new Date().toLocaleDateString();
-				scheduleTaskFromDate(epochStartDate, epochInSeconds, assignRoles, guild); 
+				scheduleTaskFromDate(epochStartDate, epochInSeconds, assignRoles, guild);
 			})
-		})
+		});
+
+		Messages.sync().then(()=>{
+			// Run update points every 120 seconds.
+			updatePoints(120000, client)
+		});
 		console.log(`Ready! Logged in as ${client.user.tag}`);
 	},
 };

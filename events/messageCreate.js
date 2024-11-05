@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
 const { fetchTweet, extractTweetId, calculatePoints, has72HoursPassed } = require('../helpers/helpers.js');
-const {Ambassadors} = require('../models/database.js')
+const {Ambassadors, Messages} = require('../models/database.js');
 
 module.exports = {
 	name: Events.MessageCreate,
@@ -32,25 +32,29 @@ module.exports = {
 				}
 	
 				// Calculate points
-				points = calculatePoints({likeCount: tweet.likes, retweetCount: tweet.retweets, replyCount: tweet.replies, impressionCount: tweet.views})
+				points = calculatePoints({likeCount: tweet.likes, retweetCount: tweet.retweets, replyCount: tweet.replies, impressionCount: tweet.views});
 
-				Ambassadors.findOne({ where: { id: message.author.id } }).then(ambassador => {
+
+
+	 			Ambassadors.findOne({ where: { id: message.author.id } }).then(ambassador => {
 					if(ambassador) {
 						if(tweet.userId != ambassador.x_user_id) {
 							// Check the tweet user Id against known Id.
 							return message.reply(`X id of user that made post doesn't match linked x id`)
 						}
-						const prevPoints = ambassador.points
-						const PrevTweets = ambassador.tweets
-						Ambassadors.update({points: prevPoints + points, tweets: PrevTweets + 1}, {where: {id: ambassador.id}}).then(affectedRows =>{
-							if (affectedRows > 0) {
-								message.reply(`${points} added to ${ambassador.x_screen_name} for the post ${tweet.id}`)
-							}
+						Messages.create({
+							id: message.id,
+							channelId: message.channelId, 
+							authorId: message.author.id,
+							createdTimestamp: message.createdTimestamp,
+							points: points,
+						}).then( msg => {
+							console.log(`Message ${msg} created.`);
 						})
 
 						return;
 					}
-				});
+				}); 
 			})
 		}
 	},

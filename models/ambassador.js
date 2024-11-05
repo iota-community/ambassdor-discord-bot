@@ -1,5 +1,4 @@
 const Sequelize = require('sequelize');
-const auth = require('../commands/utility/auth');
 
 // The ambassador model
 const Ambassador = {

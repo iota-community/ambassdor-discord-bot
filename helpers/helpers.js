@@ -1,5 +1,5 @@
 const { Scraper } = require('@the-convocation/twitter-scraper');
-const { Ambassadors } = require('../models/database.js')
+const { Ambassadors, Messages } = require('../models/database.js')
 
 const NOVICE_MAX = 249;
 const INTERMIDIATE_MIN = 250;
@@ -89,7 +89,7 @@ async function assignRoles(guild) {
         (ambassador) => {
             // delete previous ambassador's role.
             unassignRole(guild, ambassador).then(()=> {
-                            // Get current point.
+            // Get current point.
             let currentPoints = Number(ambassador.points);
             // Account for epoch decay.
             currentPoints = epochDecay(currentPoints);
@@ -182,6 +182,67 @@ function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
     }, timeUntilNextRun);
 }
 
+function updatePoints(intervalInSeconds, client) {
+    setInterval(() => fetchPoints(client), intervalInSeconds)
+}
+
+async function fetchPoints(client) {
+    const messages = await Messages.findAll({
+        attributes: ['id', 'channelId', 'createdTimestamp', 'authorId', 'points'],
+    });
+
+    if (messages.length < 1 ) {
+        return;
+    }
+
+    messages.forEach(msg => {
+        const cucumbaEmoji = "🥒";
+        const currentTime = Date.now();
+        const twentyFourHoursInMilliseconds = 24 //* 60 * 60 * 1000; // 24 hours in milliseconds
+        if(currentTime >= (msg.createdTimestamp + twentyFourHoursInMilliseconds)){
+            client.channels.fetch(msg.channelId).then(chan => {
+                chan.messages.fetch(msg.id).then(curMsg => {
+                    curMsg.reactions.cache.forEach(async(reaction) => {
+                        console.log(`Emoji is: ${JSON.stringify(reaction.emoji)}`)
+                        if (reaction.emoji.name === cucumbaEmoji) {
+                            // The post received cucumba emoji reaction. No point awarded.
+                            await Messages.destroy(
+                               { where: {
+                                    id: msg.id,
+                                 }
+                               }
+                            );
+
+                            return;
+                        }
+                    });
+
+                    Ambassadors.findOne({ where: { id: msg.authorId } }).then(ambassador => {
+                        if(ambassador) {
+                            const prevPoints = ambassador.points
+						    const PrevTweets = ambassador.tweets
+						    Ambassadors.update({points: prevPoints + msg.points, tweets: PrevTweets + 1}, {where: {id: ambassador.id}}).then(affectedRows =>{
+							if (affectedRows > 0) {
+                                Messages.destroy(
+                                    { where: {id: msg.id}}
+                                ).then(() => {
+                                    client.channels.fetch(msg.channelId).then(chan => {
+                                        chan.messages.fetch(msg.id).then(curMsg => {
+                                            curMsg.reply(`${msg.points} added to ${ambassador.x_screen_name} for the post ${msg.id}`)
+                                        });
+                                    });
+                                    return;
+                                })
+							}
+						})
+                        }
+                    });
+                });
+            });
+        }
+    })
+}
+
 
 module.exports.has72HoursPassed = has72HoursPassed;
 module.exports.assignRoles = assignRoles;
@@ -189,3 +250,4 @@ module.exports.fetchTweet = fetchTweet;
 module.exports.extractTweetId = extractTweetId;
 module.exports.calculatePoints  = calculatePoints;
 module.exports.scheduleTaskFromDate = scheduleTaskFromDate;
+module.exports.updatePoints = updatePoints;
