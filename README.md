@@ -49,10 +49,6 @@ Encourages ambassadors to refer new participants to the program.
 
 Displays a leaderboard table within Discord to track ambassadors' points and ranks.
 
-### Twitter Developer Access
-
-**Note**: Live environment testing requires a $100 Twitter developer subscription. Holger will handle the payment when notified by Gino.
-
 ---
 
 ## Getting Started
