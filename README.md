@@ -79,12 +79,12 @@ Displays a leaderboard table within Discord to track ambassadors' points and ran
 
 Create a `.env` file in the project root with the following credentials.
 
-	- "clientId": "",
-	- "guildId": "",
-	- "token": "",
-	- "epochStart":"",
-	- "adminRoleId":"",
-    - "redirectURL":""
+- "clientId": "",
+- "guildId": "",
+- "token": "",
+- "epochStart":"",
+- "adminRoleId":"",
+- "redirectURL":""
 
 4. Deploy commands:
 
@@ -99,9 +99,9 @@ Create a `.env` file in the project root with the following credentials.
 
 ## Usage
 
-    - Assign Points: Points are automatically assigned based on Twitter activity and referral engagement.
-    - Manual Adjustment: Use /add and /deduct commands to adjust points manually (available only to the Ambassador Management team).
-    - Leaderboard: View the leaderboard within the Discord server for an updated list of points and ranks.
+- Assign Points: Points are automatically assigned based on Twitter activity and referral engagement.
+- Manual Adjustment: Use /add and /deduct commands to adjust points manually (available only to the Ambassador Management team).
+- Leaderboard: View the leaderboard within the Discord server for an updated list of points and ranks.
 
 ## Contributing
 
