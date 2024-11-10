@@ -1,6 +1,5 @@
 require("dotenv").config();
-const {TwitterApi} = require('twitter-api-v2');
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -16,6 +15,12 @@ intents: [
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
+	GatewayIntentBits.GuildMessageReactions,
+],
+partials: [
+	Partials.Message, 
+	Partials.Channel, 
+	Partials.Reaction
 ],
 });
 

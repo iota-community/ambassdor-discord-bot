@@ -1,5 +1,8 @@
 const { Scraper } = require('@the-convocation/twitter-scraper');
 const { Ambassadors, Messages } = require('../models/database.js');
+const {adminRoleId} = require('../config.json');
+const { json } = require('sequelize');
+const {ReactionManager} = require('discord.js');
 
 const NOVICE_MAX = 249;
 const INTERMIDIATE_MIN = 250;
@@ -143,6 +146,13 @@ function has72HoursPassed(timestamp) {
     return (currentTime - givenTimeInMs) >= seventyTwoHoursInMs;
 }
 
+function isMoreThanGivenMinutes(timestamp, minutes) {
+    const currentTime = Date.now();
+    const timeInMs = minutes * 60 * 1000; // Convert minutes to milliseconds
+    return currentTime - timestamp > timeInMs;
+}
+
+
 /**
  * Schedule a task to run at a specified interval in seconds, starting from a given date.
  * @param {Date} startDate - The starting date for the interval.
@@ -186,6 +196,29 @@ function updatePoints(intervalInSeconds, client) {
     setInterval(() => fetchPoints(client), intervalInSeconds)
 }
 
+async function addPoints(client, msg) {
+    Ambassadors.findOne({ where: { id: msg.authorId } }).then(ambassador => {
+        if(ambassador) {
+            const prevPoints = ambassador.points
+            const PrevTweets = ambassador.tweets
+            Ambassadors.update({points: prevPoints + msg.points, tweets: PrevTweets + 1}, {where: {id: ambassador.id}}).then(affectedRows =>{
+            if (affectedRows > 0) {
+                Messages.destroy(
+                    { where: {id: msg.id}}
+                ).then(() => {
+                    client.channels.fetch(msg.channelId).then(chan => {
+                        chan.messages.fetch(msg.id).then(curMsg => {
+                            return curMsg.reply(`${msg.points} Points added to ${ambassador.displayName} for this post.`)
+                        });
+                    });
+                    return;
+                })
+            }
+        })
+        }
+    });
+}
+
 async function fetchPoints(client) {
     const messages = await Messages.findAll({
         attributes: ['id', 'channelId', 'createdTimestamp', 'authorId', 'points'],
@@ -196,75 +229,23 @@ async function fetchPoints(client) {
     }
 
     messages.forEach(msg => {
-        const cucumbaEmoji = "🥒";
         const currentTime = Date.now();
-        const twentyFourHoursInMilliseconds = 24 //* 60 * 60 * 1000; // 24 hours in milliseconds
-        if(currentTime >= (msg.createdTimestamp + twentyFourHoursInMilliseconds)){
+        const twentyFourHoursInMilliseconds = 30000 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+        if(currentTime > (msg.createdTimestamp + twentyFourHoursInMilliseconds)){
             client.channels.fetch(msg.channelId).then(chan => {
-                chan.messages.fetch(msg.id).then(curMsg => {
-                    curMsg.reactions.cache.forEach(async(reaction) => {
-                        console.log(`Emoji is: ${JSON.stringify(reaction.emoji)}`)
-                        if (reaction.emoji.name === cucumbaEmoji) {
-                            // The post received cucumba emoji reaction. No point awarded.
-                            await Messages.destroy(
-                               { where: {
-                                    id: msg.id,
-                                 }
-                               }
-                            );
+                chan.messages.fetch(msg.id).then(async curMsg => {
+                    if (curMsg == null) {
+                        return;
+                    };
 
-                            return;
-                        }
-                    });
-
-                    Ambassadors.findOne({ where: { id: msg.authorId } }).then(ambassador => {
-                        if(ambassador) {
-                            const prevPoints = ambassador.points
-						    const PrevTweets = ambassador.tweets
-						    Ambassadors.update({points: prevPoints + msg.points, tweets: PrevTweets + 1}, {where: {id: ambassador.id}}).then(affectedRows =>{
-							if (affectedRows > 0) {
-                                Messages.destroy(
-                                    { where: {id: msg.id}}
-                                ).then(() => {
-                                    client.channels.fetch(msg.channelId).then(chan => {
-                                        chan.messages.fetch(msg.id).then(curMsg => {
-                                            curMsg.reply(`${msg.points} added to ${ambassador.x_screen_name} for the post ${msg.id}`)
-                                        });
-                                    });
-                                    return;
-                                })
-							}
-						})
-                        }
-                    });
+                    addPoints(client, msg);
                 });
             });
         }
     })
 }
 
-async function addPoints(discordId, points) {
-    const ambassadors = await Ambassadors.findOne({ where: { discordId } });
-    if (ambassadors) {
-        ambassadors.points += points;
-        await ambassadors.save();
-        return true;
-    }
-    return false;
-}
-
-async function deductPoints(discordId, points) {
-    const ambassadors = await Ambassadors.findOne({ where: { discordId } });
-    if (ambassadors) {
-        ambassadors.points -= points;
-        if (ambassadors.points < 0) ambassadors.points = 0; // Prevent negative points
-        await ambassadors.save();
-        return true;
-    }
-    return false;
-}
-
-module.exports = { addPoints, deductPoints };
 module.exports.has72HoursPassed = has72HoursPassed;
 module.exports.assignRoles = assignRoles;
 module.exports.fetchTweet = fetchTweet;
@@ -272,3 +253,4 @@ module.exports.extractTweetId = extractTweetId;
 module.exports.calculatePoints  = calculatePoints;
 module.exports.scheduleTaskFromDate = scheduleTaskFromDate;
 module.exports.updatePoints = updatePoints;
+module.exports.isMoreThanGivenMinutes = isMoreThanGivenMinutes;

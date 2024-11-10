@@ -30,10 +30,11 @@ module.exports = {
 			} else {
 				Ambassadors.create({
 					id: interaction.user.id,
+					displayName: interaction.user.displayName,
 					oauth_token: token, 
 					oauth_token_secret: secret
 				}).then(amb => {
-					console.log(`Ambassador ${amb.id} added.`);
+					console.log(`Ambassador ${amb.displayName} added.`);
 					return interaction.editReply({content: `Visit the provided URL to link your X account\n  ${url}.`, ephemeral: true});
 				})
 			}

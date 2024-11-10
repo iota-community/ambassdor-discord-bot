@@ -21,7 +21,6 @@ module.exports = {
 				if (ambassador.tweeter_id) {
 					return interaction.editReply(`Your X Id is already linked, contact admin.`);
 				}
-				console.log(`Ambassador: ${JSON.stringify(ambassador)}`)
 
 				const client = new TwitterApi({ appKey: process.env.API_KEY, appSecret: process.env.API_KEY_SECRET, accessToken: ambassador.oauth_token, accessSecret: ambassador.oauth_token_secret});
 				const pin = interaction.options.getString('pin');
@@ -40,7 +39,7 @@ module.exports = {
 				});
 				return;
 			} else {
-				return interaction.editReply({content: `Use command /authenticate to link your X account.`, ephemeral: true});
+				return interaction.editReply({content: `Use command /linkx to link your X account.`, ephemeral: true});
 			}
 		});
 	},

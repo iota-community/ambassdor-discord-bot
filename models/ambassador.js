@@ -7,6 +7,10 @@ const Ambassador = {
 		unique: true,
     primaryKey: true,
 	},
+  displayName: {
+    type: Sequelize.STRING,
+    unique: true,
+  },
   x_user_id: {
     type: Sequelize.STRING,
 		unique: true,

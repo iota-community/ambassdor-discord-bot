@@ -14,13 +14,13 @@ module.exports = {
 			client.guilds.fetch(guildId).then(guild => {
 				// Reassign role every epoch
 				const epochStartDate = epochStart || new Date().toLocaleDateString();
-				scheduleTaskFromDate(epochStartDate, epochInSeconds, assignRoles, guild);
-			})
+				scheduleTaskFromDate(epochStartDate, epochInSeconds, assignRoles, guild); 		
+			 })
 		});
 
 		Messages.sync().then(()=>{
-			// Run update points every 120 seconds.
-			updatePoints(120000, client)
+			// Run update points every 120000 seconds.
+			updatePoints(120, client)
 		});
 		console.log(`Ready! Logged in as ${client.user.tag}`);
 	},
