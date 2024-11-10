@@ -42,7 +42,7 @@ Encourages ambassadors to refer new participants to the program.
 
 ### Points Management
 
-- **Manual Adjustment**: The Ambassador Management team (`Role ID: 1298996063214239775`) can manually add or deduct points using commands.
+- **Manual Adjustment**: The Ambassador Management team (`Role ID: `) can manually add or deduct points using commands.
   - Example commands: `/add 500 @discordusername` and `/deduct 500 @discordusername`
 
 ### Leaderboard Display
