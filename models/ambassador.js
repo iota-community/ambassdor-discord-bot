@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 
-// The ambassador model
+// The Ambassador model
 const Ambassador = {
 	id: {
 		type: Sequelize.STRING,
@@ -46,6 +46,22 @@ const Ambassador = {
   },
   oauth_token_secret: {
     type: Sequelize.STRING,
+  },
+  referral_code: {
+    type: Sequelize.STRING,
+    unique: true,
+  },
+  referrer: {
+    type: Sequelize.STRING,
+    defaultValue: 0,
+  },
+  intermediate_points_redeemed: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: false,
+  },
+  advanced_points_redeemed: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: false,
   }
 };
 
