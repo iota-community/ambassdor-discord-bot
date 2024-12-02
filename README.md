@@ -137,6 +137,18 @@ The bot should now be active in your server.
 
 ## Usage
 
+### Step 1: Invite the Bot to Your Server  
+
+1. Use the bot's **invite URL** to add it to your Discord server.
+2. Ensure the server has a channel named `#ambassador-tweets`.
+3. Assign the bot the necessary permissions, including:  
+   - Read Messages  
+   - Send Messages  
+   - Manage Roles  
+   - Read Message History  
+   - Add Reactions  
+4. Confirm that the bot is successfully added and active in the `#ambassador-tweets` channel.
+
 ### Step 1: Test Twitter Activity Points 
 
 1. **Link a Twitter Account** 
@@ -179,7 +191,7 @@ The bot should now be active in your server.
 
 ### Step 3: Test Role Reassignment  
 
-1. Allow an epoch (2 weeks) but for testing purposes we have reduced this to 2 minutes
+1. Allow an epoch (2 weeks) but for testing purposes you can adjust it to two minutes by changing the value of `epochInSeconds` on line 8 of the ready.js file in the events directory.
 2. Verify that roles are updated based on the following point ranges: 
    - **Novice Level**: 0–249 points  
    - **Intermediate Level**: 250–749 points  
