@@ -1,12 +1,11 @@
-require("dotenv").config();
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
+const { token } = require('./config.json');
 
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-const token = process.env.TOKEN;
 const userPoints = {};
 
 const client = new Client({

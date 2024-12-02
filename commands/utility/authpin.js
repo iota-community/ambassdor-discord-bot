@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const {Ambassadors} = require('../../models/database.js')
+const {Ambassadors} = require('../../models/database.js');
 const {TwitterApi} = require('twitter-api-v2');
+const {twitter_api_key, twitter_api_key_secret} = require('../../config.json');
 
 
 module.exports = {
@@ -22,7 +23,7 @@ module.exports = {
 					return interaction.editReply(`Your X Id is already linked, contact admin.`);
 				}
 
-				const client = new TwitterApi({ appKey: process.env.API_KEY, appSecret: process.env.API_KEY_SECRET, accessToken: ambassador.oauth_token, accessSecret: ambassador.oauth_token_secret});
+				const client = new TwitterApi({ appKey: twitter_api_key, appSecret: twitter_api_key_secret, accessToken: ambassador.oauth_token, accessSecret: ambassador.oauth_token_secret});
 				const pin = interaction.options.getString('pin');
 				client.login(pin).then(loginResult => {
 					Ambassadors.update({

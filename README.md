@@ -77,7 +77,7 @@ Displays a leaderboard table within Discord to track ambassadors' points and ran
 
 3. Set up environment variables:
 
-Create a `.env` file in the project root with the following credentials.
+Create a `config.json` file in the project root with the following credentials.
 
 - "clientId": "",
 - "guildId": "",

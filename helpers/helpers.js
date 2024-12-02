@@ -1,9 +1,9 @@
 const { Scraper } = require("@the-convocation/twitter-scraper");
-const { Ambassadors, Messages } = require("../models/database.js");
-const { adminRoleId } = require("../config.json");
-const { json } = require("sequelize");
+const { Ambassadors, Messages, TopPoints } = require("../models/database.js");
 const { ReactionManager } = require("discord.js");
 const { Ambassador } = require("../models/ambassador.js");
+const sequelize = require("sequelize");
+const { EmbedBuilder } = require("discord.js");
 
 const NOVICE_MAX = 249;
 const INTERMIDIATE_MIN = 250;
@@ -21,6 +21,11 @@ const NOVICE_ROLE = "Novice";
 const INTERMIDIATE_ROLE = "Intermidiate";
 const ADVANCED_ROLE = "Advanced";
 const EXPERT_ROLE = "Expert";
+
+// Bonus points
+const FIRST_BONUS_POINT = 50;
+const SECOND_BONUS_POINT = 30;
+const THIRD_BONUS_POINT = 20;
 
 // Helper function to extract the Tweet ID from the URL
 function extractTweetId(url) {
@@ -147,6 +152,95 @@ async function unassignRole(guild, ambassador) {
 }
 
 async function assignRoles(guild) {
+  // Add bonus point to the top 3 tweets with the highest point at the end of the epoch.
+  let fields = [];
+  let chan;
+  const toppoints = await TopPoints.findAll({order: sequelize.literal('points DESC')});
+  for(let idx = 0; idx < toppoints.length; idx++) {
+    toppoint = toppoints[idx];
+    await Ambassadors.findOne({ where: { id: toppoint.authorId } }).then(async (ambassador) => {
+      if (ambassador) {
+        let point = 0;
+        switch(idx) {
+          case 0:
+            point = FIRST_BONUS_POINT;
+            break;
+          case 1:
+            point = SECOND_BONUS_POINT;
+            break;
+          case 2:
+            point = THIRD_BONUS_POINT;
+            break;
+        }
+        const prevPoints = ambassador.points;
+        await Ambassadors.update(
+          { points: prevPoints + point},
+          { where: { id: ambassador.id } }
+        )
+        const channel = await guild.client.channels.fetch(toppoint.channelId);
+        console.log(`Setting channel`);
+        chan = channel;
+        const msg = await channel.messages.fetch(toppoint.id);
+        field = {
+          name: "Author",
+          value: msg.author.tag,
+        };
+        fields.push(field);
+        fields.push(
+          {
+            name: "Points",
+            value: String(toppoint.points),
+            inline: false,
+          }
+        );
+        fields.push(
+          {
+            name: "Post",
+            value: `${msg.toString()}`,
+            inline: false,
+          }
+        );
+
+        // Don't include devider for the last item.
+        if(idx+1 != toppoints.length){
+          fields.push(
+            {
+              name: " ",
+              value: `===========================`,
+              inline: false,
+            }
+          );
+        }
+      }
+    });
+  }
+
+  await TopPoints.truncate();
+
+  const embed = new EmbedBuilder()
+  .setColor(0x0099ff)
+  .setTitle("Top Posts in the epoch")
+  .setAuthor({
+    name: "Posted by: " + guild.client.user.username,
+    iconURL: guild.client.user.displayAvatarURL(),
+  })
+  .addFields(
+    fields
+  )
+  .setTimestamp()
+  .setFooter({
+    text: "Epoch top posts ",
+    iconURL: guild.client.user.displayAvatarURL(), 
+  });
+
+  console.log(`Sending channel`);
+  if (chan != null) {
+    chan.send({ embeds: [embed] });
+  }
+
+  chan = null;
+  fields = [];
+
   const ambassadors = await Ambassadors.findAll({
     attributes: ["id", "points"],
   });
@@ -271,7 +365,25 @@ async function addPoints(client, msg) {
         { where: { id: ambassador.id } }
       ).then((affectedRows) => {
         if (affectedRows > 0) {
-          Messages.destroy({ where: { id: msg.id } }).then(() => {
+          Messages.destroy({ where: { id: msg.id } }).then(async () => {
+            const msgs = await TopPoints.findAll({order: sequelize.literal('points DESC')});
+            
+            if (msgs.length > 2) {
+              const msgToDelete = msgs.slice(2, msgs.length)
+              msgToDelete.forEach(el => {
+                TopPoints.destroy({where: {id: el.id}})  
+              }); 
+            }
+
+            await TopPoints.create(
+              {
+                id: msg.id,
+                authorId: msg.authorId,
+                points: msg.points,
+                channelId: msg.channelId,
+              }
+            );
+            
             client.channels.fetch(msg.channelId).then((chan) => {
               chan.messages.fetch(msg.id).then((curMsg) => {
                 return curMsg.reply(
@@ -279,7 +391,6 @@ async function addPoints(client, msg) {
                 );
               });
             });
-            return;
           });
         }
       });

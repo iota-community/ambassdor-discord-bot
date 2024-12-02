@@ -2,8 +2,9 @@
 	"clientId": "",
 	"guildId": "",
 	"token": "",
-	"epochStart":"",
+    "epochStart":"",
 	"adminRoleId":"",
-    "redirectURL":""
+	"twitter_api_key": "",
+	"twitter_api_key_secret": ""
 }
 

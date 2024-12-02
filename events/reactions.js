@@ -13,7 +13,7 @@ module.exports = {
 			    await reaction.fetch();
 		    } catch (error) {
 			    console.error('Something went wrong when fetching the message:', error);
-			    // Return as `reaction.message.author` may be undefined/null
+			    // Return as `reaction.emoji` may be undefined/null
 			    return;
 		    }
 	    };

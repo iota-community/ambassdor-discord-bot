@@ -49,10 +49,8 @@ module.exports = {
 							createdTimestamp: message.createdTimestamp,
 							points: points,
 						}).then( msg => {
-							return message.reply(`${points} calculated for ${message.author.displayName} for this post.`);
-						})
-
-						return;
+							return message.reply(`🤍 ${tweet.likes}  	🔃 ${tweet.retweets}  		💬 ${tweet.replies}		📊 ${tweet.views} \n${points} Points calculated for ${message.author.displayName} for this post.`);
+						});
 					} else {
 						return message.reply(`You have not linked your X id, use /linkx command to link account.`)
 					}

@@ -2,6 +2,8 @@ const { SlashCommandBuilder } = require("discord.js");
 const { Ambassadors } = require("../../models/database.js");
 const { TwitterApi } = require("twitter-api-v2");
 const { generateRefCode } = require("../../helpers/helpers.js");
+const {twitter_api_key, twitter_api_key_secret} = require('../../config.json');
+
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,8 +18,8 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const client = new TwitterApi({
-      appKey: process.env.API_KEY,
-      appSecret: process.env.API_KEY_SECRET,
+      appKey: twitter_api_key,
+      appSecret: twitter_api_key_secret,
     });
     const authLink = await client.generateAuthLink();
     const url = authLink.url;
