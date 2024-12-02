@@ -56,7 +56,7 @@ Displays a leaderboard table within Discord to track ambassadors' points and ran
 ### Prerequisites
 
 - Node.js (v16 or higher)
-- Discord Bot Token
+- Discord Developer Portal Application
 - Twitter Developer API Access
 
 ### Installation
@@ -77,14 +77,50 @@ Displays a leaderboard table within Discord to track ambassadors' points and ran
 
 3. Set up environment variables:
 
-Create a `config.json` file in the project root with the following credentials.
+Create a `config.json` file in the project root with the following credentials. Here’s what they are and how to obtain them:
 
-- "clientId": "",
-- "guildId": "",
-- "token": "",
-- "epochStart":"",
-- "adminRoleId":"",
-- "redirectURL":""
+- **`clientId`**:
+  The unique ID of your bot.
+  - Go to the [Discord Developer Portal](https://discord.com/developers/applications).  
+  - Select your application.
+  - Navigate to **OAuth2 > General** to find the `Client ID`.
+
+- **`guildId`**:
+  The unique ID of the Discord server where the bot operates.
+  - In Discord, right-click the server name and select **Copy ID**.
+  - *(Note: Enable Developer Mode in your Discord settings if you don’t see this option.)*
+
+- **`token`**:
+  The bot’s authentication token.
+  - Go to the [Discord Developer Portal](https://discord.com/developers/applications).
+  - Select your application.
+  - Navigate to **Bot > Token** to copy the bot token.
+  - **Important**: Keep this token secret and never share it publicly.
+
+- **`epochStart`**:
+  The starting timestamp or date for the epoch cycle.
+  - Set this value manually based on your project’s epoch configuration.
+  - Example: "epochStart":"Dec 27 2024, 8:53:20 PM",
+
+- **`adminRoleId`**:
+  The unique ID of the admin role in your server.
+  - In Discord, go to your server settings and find the role.
+  - Right-click the role and select **Copy ID**.
+
+- **`twitter_api_key`**:  
+  The API key for accessing the Twitter API.  
+  - Go to the [Twitter Developer Portal](https://developer.twitter.com/).
+  - Create a new project and app if you don’t already have one.
+  - Navigate to **Keys and Tokens** under your app settings to find the API key.
+
+- **`twitter_api_key_secret`**:
+  The secret key corresponding to your Twitter API key.
+  - Go to the **Keys and Tokens** section in your app on the [Twitter Developer Portal](https://developer.twitter.com/).
+  - Copy the **API Secret Key** from the same section as the API key.
+
+**Important**: Keep both the API key and secret key private and do not share them publicly.
+
+Make sure to replace placeholders in your configuration file with the corresponding values before running the bot.
 
 4. Deploy commands:
 
@@ -96,12 +132,80 @@ Create a `config.json` file in the project root with the following credentials.
 
     ```bash
     node index.js
+    ```
+The bot should now be active in your server.
 
 ## Usage
 
-- Assign Points: Points are automatically assigned based on Twitter activity and referral engagement.
-- Manual Adjustment: Use /add and /deduct commands to adjust points manually (available only to the Ambassador Management team).
-- Leaderboard: View the leaderboard within the Discord server for an updated list of points and ranks.
+### Step 1: Test Twitter Activity Points 
+
+1. **Link a Twitter Account** 
+   - Use the `/link` command to connect your Discord account with your Twitter handle.
+   - Use the `/authpin` command to validate the generated pin
+
+2. **Post a Tweet Link** 
+   - Share a tweet in the `#ambassador-tweets` channel.
+
+3. **Check Points Assignment**
+   - Verify that the bot calculates and assigns points based on the following criteria:
+     - **Likes**: 0.5 points each
+     - **Retweets**: 2 points each
+     - **Comments**: 1 point each
+     - **Impressions**: 0.05 points each
+   - Confirm that points are assigned only if the tweet is not reacted to with a 🥒 emoji within 24 hours.
+
+4. **Test Tweet Time Cutoff**
+  - Post a tweet in the `#ambassador-tweets` channel that is **older than 74 hours**.
+  - Confirm that the bot does **not calculate or assign points** for this tweet.
+
+5. **Test Unlinked Twitter Accounts**
+  - Post a tweet link in `#ambassador-tweets` from a Twitter account **not linked** to the Discord account.
+  - Confirm the following:
+    - The bot flags the tweet as **unlinked**
+    - No points are assigned for the tweet.
+
+---
+
+### Step 2: Test Referral System  
+
+1. Use `/refcode` command to view your referral code, and share with anyone.
+    - Ask them to input this value when joing the Server
+2. Confirm the following: 
+   - Once code is used by the referred member, points should awared to the referrer
+   - 200 points are assigned when the referred member reaches **Intermediate Level**.  
+   - An additional 100 points are assigned when they reach **Advanced Level**.  
+
+---
+
+### Step 3: Test Role Reassignment  
+
+1. Allow an epoch (2 weeks) but for testing purposes we have reduced this to 2 minutes
+2. Verify that roles are updated based on the following point ranges: 
+   - **Novice Level**: 0–249 points  
+   - **Intermediate Level**: 250–749 points  
+   - **Advanced Level**: 750–4,999 points  
+   - **Expert Level**: 5,000+ points  
+
+3. Check that XP decay is applied correctly at the end of the epoch:  
+   - **Intermediate Level**: -100 points  
+   - **Advanced Level**: -250 points  
+   - **Expert Level**: -500 points  
+
+---
+
+### Step 4: Test Admin Controls  
+1. Test point adjustments using the following admin-only commands:  
+   - **Add Points**: `/add` command
+   - **Deduct Points**: `/deduct` command
+
+2. Confirm that only users with the designated admin role can execute these commands.  
+
+---
+
+### Step 5: Verify Leaderboard Display  
+1. Use the leaderboard command to display current points.  
+2. Confirm that the leaderboard is correctly formatted.  
+
 
 ## Contributing
 
