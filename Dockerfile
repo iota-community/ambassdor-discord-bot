@@ -7,6 +7,9 @@ WORKDIR /app
 # Copy the bot's source code (including entrypoint.sh)
 COPY . .
 
+# install
+RUN npm install
+
 # Ensure the entrypoint script is executable
 RUN chmod +x /app/entrypoint.sh
 
