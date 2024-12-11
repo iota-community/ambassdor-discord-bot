@@ -2,7 +2,7 @@
 	"clientId": "",
 	"guildId": "",
 	"token": "",
-    "epochStart":"",
+	"epochStart":"",
 	"adminRoleId":"",
 	"twitter_api_key": "",
 	"twitter_api_key_secret": ""
