@@ -17,10 +17,10 @@ const INTERMIDIATE_DECAY = 100;
 const ADVANCED_DECAY = 250;
 const EXPERT_DECAY = 500;
 
-const NOVICE_ROLE = "Novice";
-const INTERMIDIATE_ROLE = "Intermidiate";
-const ADVANCED_ROLE = "Advanced";
-const EXPERT_ROLE = "Expert";
+const NOVICE_ROLE = "Genesis";
+const INTERMIDIATE_ROLE = "Seeder";
+const ADVANCED_ROLE = "Innovator";
+const EXPERT_ROLE = "Visionary";
 
 // Bonus points
 const FIRST_BONUS_POINT = 50;

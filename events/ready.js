@@ -22,7 +22,7 @@ module.exports = {
 
 		Messages.sync().then(()=>{
 			// Run update points every 120000 seconds.
-			updatePoints(120000, client)
+			updatePoints(120, client)
 		});
 
 		TopPoints.sync();
