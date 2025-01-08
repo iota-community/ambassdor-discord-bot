@@ -30,9 +30,31 @@ module.exports = {
 				if (has72HoursPassed(tweet.timestamp)){
 					return message.reply(`72h hours has passed since post was made on X.`);
 				}
+
+				// get tweet metrics and check for possibe null values.
+				// If value is null, set value to 0.
+				likes = tweet.likes;
+				if(!likes) {
+					likes = 0;
+				}
+
+				retweets = tweet.retweets;
+				if (!retweets) {
+					retweets = 0;
+				}
+
+				replies = tweet.replies;
+				if (!retweets) {
+					retweets = 0;
+				}
+
+				views = tweet.views;
+				if (!retweets) {
+					retweets = 0;
+				}
 	
 				// Calculate points
-				points = calculatePoints({likeCount: tweet.likes, retweetCount: tweet.retweets, replyCount: tweet.replies, impressionCount: tweet.views});
+				points = calculatePoints({likeCount: likes, retweetCount: retweets, replyCount: replies, impressionCount: views});
 				points = parseFloat(points).toFixed(2)
 
 
@@ -49,7 +71,7 @@ module.exports = {
 							createdTimestamp: message.createdTimestamp,
 							points: points,
 						}).then( msg => {
-							return message.reply(`🤍 ${tweet.likes}  	🔃 ${tweet.retweets}  		💬 ${tweet.replies}		📊 ${tweet.views} \n${points} Points calculated for ${message.author.displayName} for this post.`);
+							return message.reply(`🤍 ${likes}  	🔃 ${retweets}  		💬 ${replies}		📊 ${views} \n${points} Points calculated for ${message.author.displayName} for this post.`);
 						});
 					} else {
 						return message.reply(`You have not linked your X id, use /linkx command to link account.`)
