@@ -153,6 +153,7 @@ async function unassignRole(guild, ambassador) {
 
 async function assignRoles(guild) {
   // Add bonus point to the top 3 tweets with the highest point at the end of the epoch.
+  console.log(`Assigning role`);
   let fields = [];
   let chan;
   const toppoints = await TopPoints.findAll({order: sequelize.literal('points DESC')});
@@ -233,7 +234,6 @@ async function assignRoles(guild) {
     iconURL: guild.client.user.displayAvatarURL(), 
   });
 
-  console.log(`Sending channel`);
   if (chan != null) {
     chan.send({ embeds: [embed] });
   }
@@ -334,19 +334,24 @@ function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
 
   // Calculate the time until the next interval from the start date
   const timeSinceStart = now - start;
-  const timeUntilNextRun =
-    (intervalInMs - (timeSinceStart % intervalInMs)) % intervalInMs;
+  let timeUntilNextRun;
 
-  // Calculate the next run date
-  const nextRunDate = new Date(now.getTime() + timeUntilNextRun);
-  console.log(`Next epoch date: ${nextRunDate.toLocaleString()}`);
+  if (timeSinceStart >= 0) {
+    // If the start date is in the past, calculate the next interval run time
+    timeUntilNextRun = (intervalInMs - (timeSinceStart % intervalInMs)) % intervalInMs;
+  } else {
+    // If the start date is in the future, calculate time until the start date
+    timeUntilNextRun = -timeSinceStart;
+  }
 
-  // Set a timeout to start the interval at the next run date
+  // Log the first execution time
+  console.log(`Next Epoch: ${new Date(now.getTime() + timeUntilNextRun).toLocaleString()}`);
+
   setTimeout(() => {
-    // Execute the task once immediately at the calculated next run date
+    // Execute the task once immediately when the start time arrives or if it's a past date
     task(guild);
 
-    // Schedule the task to run every `intervalInSeconds`
+    // Schedule the task to run every `intervalInSeconds` after the first execution
     setInterval(() => task(guild), intervalInMs);
   }, timeUntilNextRun);
 }
@@ -375,14 +380,19 @@ async function addPoints(client, msg) {
               }); 
             }
 
-            await TopPoints.create(
-              {
-                id: msg.id,
-                authorId: msg.authorId,
-                points: msg.points,
-                channelId: msg.channelId,
-              }
-            );
+            try {
+              await TopPoints.create(
+                {
+                  id: msg.id,
+                  authorId: msg.authorId,
+                  points: msg.points,
+                  channelId: msg.channelId,
+                }
+              );
+            } catch(err) {
+              console.log(`Error occured while creating toppoints table ${err}`);
+            }
+            
             
             client.channels.fetch(msg.channelId).then((chan) => {
               chan.messages.fetch(msg.id).then((curMsg) => {

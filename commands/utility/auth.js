@@ -29,7 +29,7 @@ module.exports = {
       async (ambassador) => {
         if (ambassador) {
           // return if X id is already linked.
-          if (ambassador.tweeter_id) {
+          if (ambassador.x_user_id) {
             return interaction.editReply(
               `Your X Id is already linked, contact admin.`
             );

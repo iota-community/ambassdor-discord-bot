@@ -44,13 +44,13 @@ module.exports = {
 				}
 
 				replies = tweet.replies;
-				if (!retweets) {
-					retweets = 0;
+				if (!replies) {
+					replies = 0;
 				}
 
 				views = tweet.views;
-				if (!retweets) {
-					retweets = 0;
+				if (!views) {
+					views = 0;
 				}
 	
 				// Calculate points
