@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { Ambassadors } = require("../../models/database.js");
 const { EmbedBuilder } = require("discord.js");
+const Sequelize = require('sequelize');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -10,7 +11,7 @@ module.exports = {
     await interaction.deferReply({ ephemeral: true });
 
     const ambassadors = await Ambassadors.findAll({
-      attributes: ["points", "displayName"], order: sequelize.literal('points DESC'),
+      attributes: ["points", "displayName"], order: Sequelize.literal('points DESC'),
     });
 
     let fields = [];

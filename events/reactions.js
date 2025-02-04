@@ -19,9 +19,13 @@ module.exports = {
         };
 
         const adminRole = reaction.message.member.roles.cache.some(r => r.id === adminRoleId);
+        if (!adminRole) {
+            return reaction.message.reply(`Only admin can void a message`);
+        }
+        
         if (reaction.emoji.name == "🥒" && adminRole) {
             if (isMoreThanGivenMinutes(reaction.message.createdTimestamp, 24 * 60)) {
-                return;
+                return reaction.message.reply(`Sorry, the action cannot be performed because the message void time has expired`);
             };
 
             Messages.findOne({ where: { id: reaction.message.id } }).then(msg => {
@@ -29,11 +33,13 @@ module.exports = {
                     Messages.destroy(
                         { where: { id: msg.id } }
                     ).then((msg) => {
-                        reaction.message.reply({ content: `This message has been voided.` });
+                        reaction.message.reply(`This message has been voided.`);
                     });
 
                 };
             });
+        }else{
+            console.log(`Failed to void message, admin or invalid emoji`)
         };
     },
 };

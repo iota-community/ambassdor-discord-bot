@@ -33,12 +33,12 @@ module.exports = {
                     ).then((affectedRows) => {
                         if (affectedRows > 0) {
                             return interaction.editReply({
-                                content: `Visit the provided URL to link your X account\n  ${url}.`,
+                                content: `Your X id has been unlinked. Link your X ID using \link`,
                                 ephemeral: true,
                             });
                         } else {
                             return interaction.editReply(
-                                `An error occured linking your X Id, please contact admin`
+                                `An error occured unlinking your X Id, please contact admin`
                             );
                         }
                     });

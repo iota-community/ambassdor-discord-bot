@@ -1,6 +1,6 @@
 const { Scraper } = require("@the-convocation/twitter-scraper");
 const { Ambassadors, Messages, TopPoints, Tweets, EpochPoints } = require("../models/database.js");
-const sequelize = require("sequelize");
+const Sequelize = require("sequelize");
 const { EmbedBuilder } = require("discord.js");
 
 const NOVICE_MAX = 249;
@@ -109,7 +109,7 @@ async function assignRoles(guild) {
   console.log(`Assigning role`);
   let fields = [];
   let chan;
-  const toppoints = await TopPoints.findAll({order: sequelize.literal('points DESC')});
+  const toppoints = await TopPoints.findAll({order: Sequelize.literal('points DESC')});
   for(let idx = 0; idx < toppoints.length; idx++) {
     toppoint = toppoints[idx];
     await Ambassadors.findOne({ where: { id: toppoint.authorId } }).then(async (ambassador) => {
@@ -386,7 +386,7 @@ async function addPoints(client, msg) {
           }
 
           Messages.destroy({ where: { id: msg.id } }).then(async () => {
-            const msgs = await TopPoints.findAll({order: sequelize.literal('points DESC')});
+            const msgs = await TopPoints.findAll({order: Sequelize.literal('points DESC')});
             
             if (msgs.length > 2) {
               const msgToDelete = msgs.slice(2, msgs.length)
@@ -446,15 +446,6 @@ async function fetchPoints(client) {
         });
       });
     }
-  });
-}
-
-async function isDuplicateTweet(tweetId) {
-  Tweets.findOne({ where: { id: tweetId } }).then((tweet) => {
-    if (tweet) {
-      return true;
-    }
-    return false;
   });
 }
 
@@ -527,7 +518,7 @@ async function addBaselinePoints(client, msg) {
 }
 
 async function determineEpochWinner(client) {
-  const epochPoints = await EpochPoints.findAll({order: sequelize.literal('points DESC')});
+  const epochPoints = await EpochPoints.findAll({order: Sequelize.literal('points DESC')});
   if (epochPoints.length > 0 ){
     const epochWinner = epochPoints[0];
     const channel = await client.channels.fetch(epochWinner.channelId);
@@ -546,6 +537,16 @@ async function determineEpochWinner(client) {
         inline: true,
       }
     );
+
+    const nextEpoch = new Date() + 7 * 259200 * 1000;
+    fields.push(
+      {
+        name: "Next Epoch winner will be announced in",
+        value: `<t:${String(nextEpoch)}:R>`,
+        inline: true,
+      }
+    );
+
 
     const embed = new EmbedBuilder()
     .setColor(0x0099ff)
@@ -567,6 +568,9 @@ async function determineEpochWinner(client) {
       channel.send({ embeds: [embed] });
     }  
   }
+
+  // truncate the db.
+  EpochPoints.truncate();
 }
 
 
@@ -578,5 +582,4 @@ module.exports.calculatePoints = calculatePoints;
 module.exports.scheduleTaskFromDate = scheduleTaskFromDate;
 module.exports.updatePoints = updatePoints;
 module.exports.isMoreThanGivenMinutes = isMoreThanGivenMinutes;
-module.exports.isDuplicateTweet = isDuplicateTweet;
 module.exports.determineEpochWinner = determineEpochWinner;
