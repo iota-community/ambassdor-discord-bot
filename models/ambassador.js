@@ -43,26 +43,18 @@ const Ambassador = {
   },
   oauth_token: {
     type: Sequelize.STRING,
+    unique: true,
+    allowNull: true,
   },
   oauth_token_secret: {
     type: Sequelize.STRING,
-  },
-  referral_code: {
-    type: Sequelize.STRING,
     unique: true,
+    allowNull: true,
   },
-  referrer: {
-    type: Sequelize.STRING,
-    defaultValue: 0,
+  lastBaseLinePointTime: {
+    type: Sequelize.BIGINT,
+    allowNull: true,
   },
-  intermediate_points_redeemed: {
-    type: Sequelize.BOOLEAN,
-    defaultValue: false,
-  },
-  advanced_points_redeemed: {
-    type: Sequelize.BOOLEAN,
-    defaultValue: false,
-  }
 };
 
 module.exports.Ambassador = Ambassador;
