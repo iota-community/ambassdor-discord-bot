@@ -18,7 +18,7 @@ module.exports = {
                 .setDescription("User to add points to.")
                 .setRequired(true)),
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply();
 
         const adminRole = interaction.member.roles.cache.some(r => r.id === adminRoleId);
         if (!adminRole) {
@@ -33,6 +33,24 @@ module.exports = {
                 const prevPoints = ambassador.points
                 Ambassadors.update({ points: prevPoints + points }, { where: { id: ambassador.id } }).then(affectedRows => {
                     if (affectedRows > 0) {
+                        try {
+                            EpochPoints.findOne({ where: { id: ambassador.id } }).then((ambassadorPoint) => {
+                                if (ambassadorPoint) {
+                                    EpochPoints.update(
+                                        { points: ambassadorPoint.points + points },
+                                        { where: { id: ambassadorPoint.id } },
+                                    );
+                                } else {
+                                    EpochPoints.create({
+                                        id: ambassador.id,
+                                        points: points,
+                                        channelId: interaction.channelId,
+                                    });
+                                }
+                            });
+                        } catch (err) {
+                            console.log(`Error updating epoch point: ${err}`);
+                        }
                         interaction.editReply(`${points} Points added to ${user.username}  successfully.`);
                     };
                 });

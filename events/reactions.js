@@ -28,7 +28,9 @@ module.exports = {
                 if (msg) {
                     Messages.destroy(
                         { where: { id: msg.id } }
-                    );
+                    ).then((msg) => {
+                        reaction.message.reply({ content: `This message has been voided.` });
+                    });
 
                 };
             });

@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
-const { fetchTweet, extractTweetId, calculatePoints, has72HoursPassed } = require('../helpers/helpers.js');
-const {Ambassadors, Messages} = require('../models/database.js');
+const { fetchTweet, extractTweetId, calculatePoints, has72HoursPassed, isDuplicateTweet } = require('../helpers/helpers.js');
+const {Ambassadors, Messages, Tweets} = require('../models/database.js');
 
 module.exports = {
 	name: Events.MessageCreate,
@@ -15,7 +15,7 @@ module.exports = {
 				return message.reply(`Unable to extract tweet Id.`);
 			}
 			// Fetch tweet. 
-			fetchTweet(tweetId).then(tweet =>{
+			fetchTweet(tweetId).then(async(tweet) =>{
 				if (tweet === null) {
 					console.log(`unable to fetch tweet ${tweetId}`);
 					return;
@@ -29,6 +29,10 @@ module.exports = {
 				// return if tweet is above cutoff point. 
 				if (has72HoursPassed(tweet.timestamp)){
 					return message.reply(`72h hours has passed since post was made on X.`);
+				}
+
+				if (await isDuplicateTweet(tweetId)) {
+					return message.reply(`Duplicate tweet detected: This message has already been posted in the channel`);
 				}
 
 				// get tweet metrics and check for possibe null values.
@@ -71,7 +75,12 @@ module.exports = {
 							createdTimestamp: message.createdTimestamp,
 							points: points,
 						}).then( msg => {
-							return message.reply(`🤍 ${likes}  	🔃 ${retweets}  		💬 ${replies}		📊 ${views} \n${points} Points calculated for ${message.author.displayName} for this post.`);
+							Tweets.create({
+								id: tweetId,
+								author: message.author.id,
+							}).then(()=> {
+								return message.reply(`🤍 ${likes}  	🔃 ${retweets}  		💬 ${replies}		📊 ${views} \n${points} Points calculated for ${message.author.displayName} for this post.`);
+							});
 						});
 					} else {
 						return message.reply(`You have not linked your X id, use /linkx command to link account.`)

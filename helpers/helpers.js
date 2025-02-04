@@ -1,7 +1,5 @@
 const { Scraper } = require("@the-convocation/twitter-scraper");
-const { Ambassadors, Messages, TopPoints } = require("../models/database.js");
-const { ReactionManager } = require("discord.js");
-const { Ambassador } = require("../models/ambassador.js");
+const { Ambassadors, Messages, TopPoints, Tweets, EpochPoints } = require("../models/database.js");
 const sequelize = require("sequelize");
 const { EmbedBuilder } = require("discord.js");
 
@@ -83,52 +81,7 @@ function assignAmbassadorRole(guild, ambassador, curRole) {
       const role = guild.roles.cache.find((role) => role.name === curRole);
       if (!role) return;
       member.roles.add(role).then(async () => {
-        if (ambassador.referrer) {
-          if (
-            curRole == INTERMIDIATE_ROLE &&
-            ambassador.intermediate_points_redeemed
-          ) {
-            return;
-          }
-
-          if (curRole == ADVANCED_ROLE && ambassador.advanced_points_redeemed) {
-            return;
-          }
-
-          const amb = await Ambassadors.findOne({
-            where: { referral_code: ambassador.referrer },
-          });
-
-          if (curRole == INTERMIDIATE_ROLE) {
-            const points = amb.points + 200;
-            Ambassadors.update(
-              { points: points },
-              { where: { id: amb.id } }
-            ).then((affectedRows) => {
-              if (affectedRows > 0) {
-                Ambassadors.update(
-                  { intermediate_points_redeemed: true },
-                  { where: { id: ambassador.id } }
-                );
-              }
-            });
-          }
-
-          if (curRole == ADVANCED_ROLE) {
-            const points = amb.points + 100;
-            Ambassadors.update(
-              { points: points },
-              { where: { id: amb.id } }
-            ).then((affectedRows) => {
-              if (affectedRows > 0) {
-                Ambassadors.update(
-                  { advanced_points_redeemed: true },
-                  { where: { id: ambassador.id } }
-                );
-              }
-            });
-          }
-        }
+        console.log(`User ${ambassador.displayName} assigned ${role.name} role`);
       });
     })
     .catch(console.error);
@@ -173,13 +126,32 @@ async function assignRoles(guild) {
             point = THIRD_BONUS_POINT;
             break;
         }
+        const channel = await guild.client.channels.fetch(toppoint.channelId);
         const prevPoints = ambassador.points;
         await Ambassadors.update(
           { points: prevPoints + point},
           { where: { id: ambassador.id } }
-        )
-        const channel = await guild.client.channels.fetch(toppoint.channelId);
-        console.log(`Setting channel`);
+        ).then(()=>{
+          try {
+            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
+              if(ambassadorPoint){
+                EpochPoints.update(
+                  {points: ambassadorPoint.points + point},
+                  {where: {id: ambassadorPoint.id}},
+                );
+              } else {
+                EpochPoints.create({
+                  id: ambassador.id,
+                  points: point,
+                  channelId: channel.id,
+                });
+              }
+            });
+          }catch(err) {
+            console.log(`Error updating epoch point: ${err}`);
+          }
+        });
+        
         chan = channel;
         const msg = await channel.messages.fetch(toppoint.id);
         field = {
@@ -238,9 +210,6 @@ async function assignRoles(guild) {
     chan.send({ embeds: [embed] });
   }
 
-  chan = null;
-  fields = [];
-
   const ambassadors = await Ambassadors.findAll({
     attributes: ["id", "points"],
   });
@@ -261,6 +230,29 @@ async function assignRoles(guild) {
       ).then((affectedRows) => {
         if (affectedRows > 0) {
           console.log(`User ${ambassador.id} points updated`);
+
+          try {
+            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
+              if(ambassadorPoint){
+                let points = Number(ambassadorPoint.points);
+                // Account for epoch decay.
+                points = epochDecay(points);
+                EpochPoints.update(
+                  {points: points},
+                  {where: {id: ambassadorPoint.id}},
+                );
+              } else {
+                EpochPoints.create({
+                  id: ambassador.id,
+                  points: 0,
+                  channelId: chan.id
+                });
+              }
+            });
+          }catch(err) {
+            console.log(`Error updating epoch point: ${err}`);
+          }
+
         } else {
           console.log(`User ${ambassador.id} failed to updated points`);
         }
@@ -285,6 +277,10 @@ async function assignRoles(guild) {
       }
     });
   });
+
+  chan = null;
+  fields = [];
+
 }
 
 async function fetchTweet(tweetId) {
@@ -366,10 +362,29 @@ async function addPoints(client, msg) {
       const prevPoints = ambassador.points;
       const PrevTweets = ambassador.tweets;
       Ambassadors.update(
-        { points: prevPoints + msg.points, tweets: PrevTweets + 1 },
+        { points: prevPoints + msg.points, tweets: PrevTweets + 1},
         { where: { id: ambassador.id } }
       ).then((affectedRows) => {
         if (affectedRows > 0) {
+          try {
+            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
+              if(ambassadorPoint){
+                EpochPoints.update(
+                  {points: ambassadorPoint.points + msg.points},
+                  {where: {id: ambassadorPoint.id}},
+                );
+              } else {
+                EpochPoints.create({
+                  id: ambassador.id,
+                  points: msg.points,
+                  channelId: msg.channelId,
+                });
+              }
+            });
+          }catch(err) {
+            console.log(`Error updating epoch point: ${err}`);
+          }
+
           Messages.destroy({ where: { id: msg.id } }).then(async () => {
             const msgs = await TopPoints.findAll({order: sequelize.literal('points DESC')});
             
@@ -408,18 +423,6 @@ async function addPoints(client, msg) {
   });
 }
 
-function generateRefCode() {
-  let refCode = "";
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  for (let i = 0; i < 2; i++) {
-    const randomInd = Math.floor(Math.random() * characters.length);
-    refCode += characters.charAt(randomInd);
-  }
-  const digits = String(Math.floor(100000 + Math.random() * 900000)); // generate 6 digits ref code
-  refCode = digits + refCode;
-  return refCode;
-}
-
 async function fetchPoints(client) {
   const messages = await Messages.findAll({
     attributes: ["id", "channelId", "createdTimestamp", "authorId", "points"],
@@ -431,7 +434,7 @@ async function fetchPoints(client) {
 
   messages.forEach((msg) => {
     const currentTime = Date.now();
-    const twentyFourHoursInMilliseconds = 30000; //* 60 * 60 * 1000; // 24 hours in milliseconds
+    const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
     if (currentTime > msg.createdTimestamp + twentyFourHoursInMilliseconds) {
       client.channels.fetch(msg.channelId).then((chan) => {
@@ -439,13 +442,133 @@ async function fetchPoints(client) {
           if (curMsg == null) {
             return;
           }
-
           addPoints(client, msg);
         });
       });
     }
   });
 }
+
+async function isDuplicateTweet(tweetId) {
+  Tweets.findOne({ where: { id: tweetId } }).then((tweet) => {
+    if (tweet) {
+      return true;
+    }
+    return false;
+  });
+}
+
+async function assignBaseLinePoints(client) {
+  const messages = await Messages.findAll({
+    attributes: ["id", "channelId", "createdTimestamp", "authorId", "points"],
+  });
+
+  if (messages.length < 1) {
+    return;
+  }
+
+  messages.forEach((msg) => {
+    const currentTime = Date.now();
+    const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    if (msg.createdTimestamp + twentyFourHoursInMilliseconds <= currentTime) {
+      client.channels.fetch(msg.channelId).then((chan) => {
+        chan.messages.fetch(msg.id).then(async (curMsg) => {
+          if (curMsg == null) {
+            return;
+          }
+          addBaselinePoints(client, msg);
+        });
+      });
+    }
+  });
+}
+
+async function addBaselinePoints(client, msg) {
+  Ambassadors.findOne({ where: { id: msg.authorId } }).then((ambassador) => {
+    if (ambassador) {
+      if(!(new Date() - ambassador.lastBaseLinePointTime) >= 86400000 ) {
+        return
+      }
+      const prevPoints = ambassador.points;
+      Ambassadors.update(
+        { points: prevPoints + 20, lastBaseLinePointTime: new Date()},
+        { where: { id: ambassador.id } }
+      ).then((affectedRows) => {
+        if (affectedRows > 0) {
+          try {
+            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
+              if(ambassadorPoint){
+                EpochPoints.update(
+                  {points: ambassadorPoint.points + 20},
+                  {where: {id: ambassadorPoint.id}},
+                );
+              } else {
+                EpochPoints.create({
+                  id: ambassador.id,
+                  points: 20,
+                  channelId: msg.channelId,
+                });
+              }
+            });
+          }catch(err) {
+            console.log(`Error updating epoch point: ${err}`);
+          }
+          client.channels.fetch(msg.channelId).then((chan) => {
+              return chan.send(
+                `🎉 Great job, ${ambassador.displayName}! You’ve earned 20 points for posting in the last 24 hours. Keep it up!`
+              );
+          });
+          
+        }
+      });
+    }
+  });
+}
+
+async function determineEpochWinner(client) {
+  const epochPoints = await EpochPoints.findAll({order: sequelize.literal('points DESC')});
+  if (epochPoints.length > 0 ){
+    const epochWinner = epochPoints[0];
+    const channel = await client.channels.fetch(epochWinner.channelId);
+    let fields = [];
+    field = {
+      name: "Author",
+      value: "Ambassador Bot",
+    };
+    fields.push(field);
+    const winner = await channel.members.fetch(epochWinner.id);
+
+    fields.push(
+      {
+        name: "Winner of this competition round is",
+        value: winner.displayName,
+        inline: true,
+      }
+    );
+
+    const embed = new EmbedBuilder()
+    .setColor(0x0099ff)
+    .setTitle("Epoch competition winner")
+    .setAuthor({
+      name: "Posted by: " + client.user.username,
+      iconURL: client.user.displayAvatarURL(),
+    })
+    .addFields(
+      fields
+    )
+    .setTimestamp()
+    .setFooter({
+      text: "Epoch winner ",
+      iconURL: client.user.displayAvatarURL(), 
+    });
+  
+    if (channel != null) {
+      channel.send({ embeds: [embed] });
+    }  
+  }
+}
+
 
 module.exports.has72HoursPassed = has72HoursPassed;
 module.exports.assignRoles = assignRoles;
@@ -455,4 +578,5 @@ module.exports.calculatePoints = calculatePoints;
 module.exports.scheduleTaskFromDate = scheduleTaskFromDate;
 module.exports.updatePoints = updatePoints;
 module.exports.isMoreThanGivenMinutes = isMoreThanGivenMinutes;
-module.exports.generateRefCode = generateRefCode;
+module.exports.isDuplicateTweet = isDuplicateTweet;
+module.exports.determineEpochWinner = determineEpochWinner;
