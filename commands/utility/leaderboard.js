@@ -10,7 +10,7 @@ module.exports = {
     await interaction.deferReply({ ephemeral: true });
 
     const ambassadors = await Ambassadors.findAll({
-      attributes: ["points", "displayName"],
+      attributes: ["points", "displayName"], order: sequelize.literal('points DESC'),
     });
 
     let fields = [];

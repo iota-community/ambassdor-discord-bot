@@ -18,7 +18,7 @@ module.exports = {
                 .setDescription("User to deduct points from.")
                 .setRequired(true)),
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply();
 
         const adminRole = interaction.member.roles.cache.some(r => r.id === adminRoleId);
         if (!adminRole) {
@@ -36,6 +36,30 @@ module.exports = {
                     curPoints = 0;
                 }
                 Ambassadors.update({ points: curPoints }, { where: { id: ambassador.id } }).then(affectedRows => {
+                    try {
+                        EpochPoints.findOne({ where: { id: ambassador.id } }).then((ambassadorPoint) => {
+                            if (ambassadorPoint) {
+                                const ambPoints = ambassadorPoint.points - points;
+                                // Avoid negative points.
+                                if (ambPoints < 0) {
+                                    ambPoints = 0;
+                                }
+
+                                EpochPoints.update(
+                                    { points: ambPoints },
+                                    { where: { id: ambassadorPoint.id } },
+                                );
+                            } else {
+                                EpochPoints.create({
+                                    id: ambassador.id,
+                                    points: 0,
+                                    channelId: interaction.channelId,
+                                });
+                            }
+                        });
+                    } catch (err) {
+                        console.log(`Error updating epoch point: ${err}`);
+                    }
                     if (affectedRows > 0) {
                         interaction.editReply(`${points} Points deducted from ${user.username}  successfully.`);
                     };
