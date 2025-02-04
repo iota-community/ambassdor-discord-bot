@@ -20,7 +20,7 @@ module.exports = {
 			if (ambassador) {
 				// return if X id is already linked.
 				if (ambassador.x_user_id) {
-					return interaction.editReply(`Your X Id is already linked, contact admin.`);
+					return interaction.editReply(`Your X Id is already linked, unlink using /unlink command.`);
 				}
 
 				const client = new TwitterApi({ appKey: twitter_api_key, appSecret: twitter_api_key_secret, accessToken: ambassador.oauth_token, accessSecret: ambassador.oauth_token_secret });

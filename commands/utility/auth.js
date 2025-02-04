@@ -1,20 +1,13 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { Ambassadors } = require("../../models/database.js");
 const { TwitterApi } = require("twitter-api-v2");
-const { generateRefCode } = require("../../helpers/helpers.js");
 const {twitter_api_key, twitter_api_key_secret} = require('../../config.json');
 
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("linkx")
-    .setDescription("Link your X account")
-    .addStringOption((option) =>
-      option
-        .setName("refcode")
-        .setDescription("Referral code")
-        .setRequired(false)
-    ),
+    .setName("link")
+    .setDescription("Link your X account"),
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const client = new TwitterApi({
@@ -51,31 +44,11 @@ module.exports = {
           });
         } else {
           try {
-            const referrer = interaction.options.getString('refcode');
-            // Validate referral code.
-            if (referrer){
-              const amb = await Ambassadors.findOne({ where: { referral_code: referrer } });
-              if (!amb) {
-                return interaction.editReply(
-                  `You provided an invalid referal code.`
-                );
-              }
-
-              // Prevent ambassadors from referring themselves.
-              if (amb.id === interaction.user.id) {
-                return interaction.editReply(
-                  `You can not refer yourself.`
-                );
-              }
-            }
-            const refCode = generateRefCode();
             Ambassadors.create({
               id: interaction.user.id,
               displayName: interaction.user.displayName,
               oauth_token: token,
               oauth_token_secret: secret,
-              referral_code: refCode,
-              referrer: referrer,
             }).then((amb) => {
               return interaction.editReply({
                 content: `Visit the provided URL to link your X account\n  ${url}.`,
