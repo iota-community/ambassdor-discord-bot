@@ -20,6 +20,11 @@ const Message = {
     },
     points: {
         type: Sequelize.INTEGER  // Updated to INTEGER for compatibility
+    },
+    tweetId: {
+        type: Sequelize.STRING,
+        unique: true,
+        allowNull: false,
     }
 }
 

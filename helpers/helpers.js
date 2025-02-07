@@ -1,7 +1,14 @@
 const { Scraper } = require("@the-convocation/twitter-scraper");
-const { Ambassadors, Messages, TopPoints, Tweets, EpochPoints } = require("../models/database.js");
-const Sequelize = require("sequelize");
-const { EmbedBuilder } = require("discord.js");
+const {
+  Ambassadors,
+  Messages,
+  TopPoints,
+  EpochPoints,
+  States,
+  Tweets,
+} = require("../models/database.js");
+const { Sequelize, Op, json, where } = require("sequelize");
+const { EmbedBuilder, time, TimestampStyles } = require("discord.js");
 
 const NOVICE_MAX = 249;
 const INTERMIDIATE_MIN = 250;
@@ -24,6 +31,15 @@ const EXPERT_ROLE = "Visionary";
 const FIRST_BONUS_POINT = 50;
 const SECOND_BONUS_POINT = 30;
 const THIRD_BONUS_POINT = 20;
+
+const EPOCH_IN_SECONDS = 72 * 60 * 60; 
+// time in millis that bonus points should be awarded for posts.
+const BASELINE_POINT_AWARD_MILLIS = 86400000; // Every 24 hours
+const TWENTY_FOUR_HOURS_IN_MILLIS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const BASELINE_POINT = 20;
+const SEVENTY_TWO_HOURS_IN_MILLIS = 72 * 60 * 60 * 1000; // 24 hours in milliseconds
+const DEFAUL_STATE_INDEX = 1;
+const NUM_OF_EPOCHS_TO_WIN = 10;
 
 // Helper function to extract the Tweet ID from the URL
 function extractTweetId(url) {
@@ -73,7 +89,7 @@ function knownRole(role) {
   }
 }
 
-function assignAmbassadorRole(guild, ambassador, curRole) {
+async function assignAmbassadorRole(guild, ambassador, curRole) {
   // Fetch a single member
   guild.members
     .fetch(ambassador.id)
@@ -81,7 +97,9 @@ function assignAmbassadorRole(guild, ambassador, curRole) {
       const role = guild.roles.cache.find((role) => role.name === curRole);
       if (!role) return;
       member.roles.add(role).then(async () => {
-        console.log(`User ${ambassador.displayName} assigned ${role.name} role`);
+        console.log(
+          `User ${ambassador.displayName} assigned ${role.name} role`
+        );
       });
     })
     .catch(console.error);
@@ -106,105 +124,95 @@ async function unassignRole(guild, ambassador) {
 
 async function assignRoles(guild) {
   // Add bonus point to the top 3 tweets with the highest point at the end of the epoch.
-  console.log(`Assigning role`);
   let fields = [];
   let chan;
-  const toppoints = await TopPoints.findAll({order: Sequelize.literal('points DESC')});
-  for(let idx = 0; idx < toppoints.length; idx++) {
+  const toppoints = await TopPoints.findAll({
+    order: Sequelize.literal("points DESC"),
+  });
+  for (let idx = 0; idx < toppoints.length; idx++) {
     toppoint = toppoints[idx];
     await Ambassadors.findOne({ where: { id: toppoint.authorId } }).then(async (ambassador) => {
-      if (ambassador) {
-        let point = 0;
-        switch(idx) {
-          case 0:
-            point = FIRST_BONUS_POINT;
-            break;
-          case 1:
-            point = SECOND_BONUS_POINT;
-            break;
-          case 2:
-            point = THIRD_BONUS_POINT;
-            break;
-        }
-        const channel = await guild.client.channels.fetch(toppoint.channelId);
-        const prevPoints = ambassador.points;
-        await Ambassadors.update(
-          { points: prevPoints + point},
-          { where: { id: ambassador.id } }
-        ).then(()=>{
-          try {
-            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
-              if(ambassadorPoint){
-                EpochPoints.update(
-                  {points: ambassadorPoint.points + point},
-                  {where: {id: ambassadorPoint.id}},
-                );
-              } else {
-                EpochPoints.create({
-                  id: ambassador.id,
-                  points: point,
-                  channelId: channel.id,
-                });
-              }
-            });
-          }catch(err) {
-            console.log(`Error updating epoch point: ${err}`);
+        if (ambassador) {
+          let point = 0;
+          switch (idx) {
+            case 0:
+              point = FIRST_BONUS_POINT;
+              break;
+            case 1:
+              point = SECOND_BONUS_POINT;
+              break;
+            case 2:
+              point = THIRD_BONUS_POINT;
+              break;
           }
-        });
-        
-        chan = channel;
-        const msg = await channel.messages.fetch(toppoint.id);
-        field = {
-          name: "Author",
-          value: msg.author.tag,
-        };
-        fields.push(field);
-        fields.push(
-          {
+          const channel = await guild.client.channels.fetch(toppoint.channelId);
+          const prevPoints = ambassador.points;
+          await Ambassadors.update(
+            { points: prevPoints + point },
+            { where: { id: ambassador.id } }
+          ).then(() => {
+            console.log(`Ambassador points updated`);
+          });
+
+          chan = channel;
+          const msg = await channel.messages.fetch(toppoint.id);
+          field = {
+            name: "Author",
+            value: msg.author.tag,
+          };
+          fields.push(field);
+          fields.push({
             name: "Points",
             value: String(toppoint.points),
             inline: false,
-          }
-        );
-        fields.push(
-          {
+          });
+          fields.push({
             name: "Post",
             value: `${msg.toString()}`,
             inline: false,
-          }
-        );
+          });
 
-        // Don't include devider for the last item.
-        if(idx+1 != toppoints.length){
-          fields.push(
-            {
+          fields.push({
+            name:  `🎉 Great job, ${ambassador.displayName}! You’ve earned ${point} points for this post`,
+            value: "🎉",
+            inline: false,
+          });
+
+          // Don't include devider for the last item.
+          if (idx + 1 != toppoints.length) {
+            fields.push({
               name: " ",
               value: `===========================`,
               inline: false,
-            }
-          );
+            });
+          }
         }
       }
-    });
+    );
   }
 
-  await TopPoints.truncate();
+  const state = await States.findOne({where: { id: DEFAUL_STATE_INDEX}});
+  if(state) {
+    let nextEpochTime = state.startupTime + (EPOCH_IN_SECONDS * 1000 * NUM_OF_EPOCHS_TO_WIN);
+    if (state.nextEpochTime) {
+      nextEpochTime = state.nextEpochTime
+    }
+    fields.push({
+      name: "⏳ Epoch winner announcement in:",
+      value: `${time(new Date(nextEpochTime), TimestampStyles.RelativeTime)}`,
+      inline: false,
+    });
+
+  }
 
   const embed = new EmbedBuilder()
-  .setColor(0x0099ff)
-  .setTitle("Top Posts in the epoch")
-  .setAuthor({
-    name: "Posted by: " + guild.client.user.username,
-    iconURL: guild.client.user.displayAvatarURL(),
-  })
-  .addFields(
-    fields
-  )
-  .setTimestamp()
-  .setFooter({
-    text: "Epoch top posts ",
-    iconURL: guild.client.user.displayAvatarURL(), 
-  });
+    .setColor(0x0099ff)
+    .setTitle("Top Posts in the epoch")
+    .addFields(fields)
+    .setTimestamp()
+    .setFooter({
+      text: "Epoch top posts ",
+    });
 
   if (chan != null) {
     chan.send({ embeds: [embed] });
@@ -214,15 +222,16 @@ async function assignRoles(guild) {
     attributes: ["id", "points"],
   });
 
-  ambassadors.forEach((ambassador) => {
+  for(i = 0; i < ambassadors.length; i++) {
+    let ambassador = ambassadors[i];
     // delete previous ambassador's role.
-    unassignRole(guild, ambassador).then(() => {
+    await unassignRole(guild, ambassador).then(async () => {
       // Get current point.
       let currentPoints = Number(ambassador.points);
       // Account for epoch decay.
       currentPoints = epochDecay(currentPoints);
 
-      Ambassadors.update(
+      await Ambassadors.update(
         {
           points: currentPoints,
         },
@@ -230,29 +239,6 @@ async function assignRoles(guild) {
       ).then((affectedRows) => {
         if (affectedRows > 0) {
           console.log(`User ${ambassador.id} points updated`);
-
-          try {
-            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
-              if(ambassadorPoint){
-                let points = Number(ambassadorPoint.points);
-                // Account for epoch decay.
-                points = epochDecay(points);
-                EpochPoints.update(
-                  {points: points},
-                  {where: {id: ambassadorPoint.id}},
-                );
-              } else {
-                EpochPoints.create({
-                  id: ambassador.id,
-                  points: 0,
-                  channelId: chan.id
-                });
-              }
-            });
-          }catch(err) {
-            console.log(`Error updating epoch point: ${err}`);
-          }
-
         } else {
           console.log(`User ${ambassador.id} failed to updated points`);
         }
@@ -276,11 +262,11 @@ async function assignRoles(guild) {
           console.log(`No matching role`);
       }
     });
-  });
+  }
 
+  fields = null;
   chan = null;
-  fields = [];
-
+  TopPoints.truncate();
 }
 
 async function fetchTweet(tweetId) {
@@ -292,13 +278,10 @@ async function fetchTweet(tweetId) {
 function has72HoursPassed(timestamp) {
   // Get the current time in milliseconds
   const currentTime = Date.now();
-  // Convert 72 hours to milliseconds (72 * 60 * 60 * 1000)
-  const seventyTwoHoursInMs = 72 * 60 * 60 * 1000;
   // Convert the given timestamp from seconds to milliseconds
   const givenTimeInMs = timestamp * 1000;
-
   // Check if the difference between current time and given time is greater than 72 hours
-  return currentTime - givenTimeInMs >= seventyTwoHoursInMs;
+  return currentTime - givenTimeInMs >= SEVENTY_TWO_HOURS_IN_MILLIS;
 }
 
 function isMoreThanGivenMinutes(timestamp, minutes) {
@@ -334,14 +317,17 @@ function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
 
   if (timeSinceStart >= 0) {
     // If the start date is in the past, calculate the next interval run time
-    timeUntilNextRun = (intervalInMs - (timeSinceStart % intervalInMs)) % intervalInMs;
+    timeUntilNextRun =
+      (intervalInMs - (timeSinceStart % intervalInMs)) % intervalInMs;
   } else {
     // If the start date is in the future, calculate time until the start date
     timeUntilNextRun = -timeSinceStart;
   }
 
   // Log the first execution time
-  console.log(`Next Epoch: ${new Date(now.getTime() + timeUntilNextRun).toLocaleString()}`);
+  console.log(
+    `Next Epoch: ${new Date(now.getTime() + timeUntilNextRun).toLocaleString()}`
+  );
 
   setTimeout(() => {
     // Execute the task once immediately when the start time arrives or if it's a past date
@@ -357,58 +343,61 @@ function updatePoints(intervalInSeconds, client) {
 }
 
 async function addPoints(client, msg) {
-  Ambassadors.findOne({ where: { id: msg.authorId } }).then((ambassador) => {
+  await Ambassadors.findOne({ where: { id: msg.authorId } }).then(async (ambassador) => {
     if (ambassador) {
       const prevPoints = ambassador.points;
       const PrevTweets = ambassador.tweets;
-      Ambassadors.update(
-        { points: prevPoints + msg.points, tweets: PrevTweets + 1},
+      await Ambassadors.update(
+        { points: prevPoints + msg.points, tweets: PrevTweets + 1 },
         { where: { id: ambassador.id } }
-      ).then((affectedRows) => {
+      ).then(async (affectedRows) => {
         if (affectedRows > 0) {
           try {
-            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
-              if(ambassadorPoint){
-                EpochPoints.update(
-                  {points: ambassadorPoint.points + msg.points},
-                  {where: {id: ambassadorPoint.id}},
-                );
-              } else {
-                EpochPoints.create({
-                  id: ambassador.id,
-                  points: msg.points,
-                  channelId: msg.channelId,
-                });
+            await EpochPoints.findOne({ where: { id: ambassador.id } }).then(
+              async (ambassadorPoint) => {
+                if (ambassadorPoint) {
+                  await EpochPoints.update(
+                    { points: ambassadorPoint.points + msg.points },
+                    { where: { id: ambassadorPoint.id } }
+                  );
+                } else {
+                  await EpochPoints.create({
+                    id: ambassador.id,
+                    points: msg.points,
+                    channelId: msg.channelId,
+                  });
+                }
               }
-            });
-          }catch(err) {
+            );
+          } catch (err) {
             console.log(`Error updating epoch point: ${err}`);
           }
 
-          Messages.destroy({ where: { id: msg.id } }).then(async () => {
-            const msgs = await TopPoints.findAll({order: Sequelize.literal('points DESC')});
-            
+          await Messages.destroy({ where: { id: msg.id } }).then(async () => {
+            const msgs = await TopPoints.findAll({
+              order: Sequelize.literal("points DESC"),
+            });
+
             if (msgs.length > 2) {
-              const msgToDelete = msgs.slice(2, msgs.length)
-              msgToDelete.forEach(el => {
-                TopPoints.destroy({where: {id: el.id}})  
-              }); 
+              const msgToDelete = msgs.slice(2, msgs.length);
+              msgToDelete.forEach((el) => {
+                TopPoints.destroy({ where: { id: el.id } });
+              });
             }
 
             try {
-              await TopPoints.create(
-                {
-                  id: msg.id,
-                  authorId: msg.authorId,
-                  points: msg.points,
-                  channelId: msg.channelId,
-                }
+              await TopPoints.create({
+                id: msg.id,
+                authorId: msg.authorId,
+                points: msg.points,
+                channelId: msg.channelId,
+              });
+            } catch (err) {
+              console.log(
+                `Error occured while creating toppoints table ${err}`
               );
-            } catch(err) {
-              console.log(`Error occured while creating toppoints table ${err}`);
             }
-            
-            
+
             client.channels.fetch(msg.channelId).then((chan) => {
               chan.messages.fetch(msg.id).then((curMsg) => {
                 return curMsg.reply(
@@ -432,17 +421,16 @@ async function fetchPoints(client) {
     return;
   }
 
-  messages.forEach((msg) => {
+  await messages.forEach((msg) => {
     const currentTime = Date.now();
-    const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-    if (currentTime > msg.createdTimestamp + twentyFourHoursInMilliseconds) {
+    if (currentTime > (msg.createdTimestamp + TWENTY_FOUR_HOURS_IN_MILLIS)) {
       client.channels.fetch(msg.channelId).then((chan) => {
         chan.messages.fetch(msg.id).then(async (curMsg) => {
           if (curMsg == null) {
             return;
           }
-          addPoints(client, msg);
+          await addPoints(client, msg);
         });
       });
     }
@@ -450,67 +438,55 @@ async function fetchPoints(client) {
 }
 
 async function assignBaseLinePoints(client) {
-  const messages = await Messages.findAll({
-    attributes: ["id", "channelId", "createdTimestamp", "authorId", "points"],
+  const botState = await States.findOne({ where: { id: DEFAUL_STATE_INDEX } });
+  let baselineLastRun = 0;
+  if (botState) {
+    baselineLastRun = botState.baselinePointsTime;
+  }
+  const messages = await Tweets.findAll({
+    where: { createdAt: { [Op.between]: [new Date(baselineLastRun), new Date()] } },
   });
-
   if (messages.length < 1) {
     return;
   }
 
-  messages.forEach((msg) => {
-    const currentTime = Date.now();
-    const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
-    if (msg.createdTimestamp + twentyFourHoursInMilliseconds <= currentTime) {
-      client.channels.fetch(msg.channelId).then((chan) => {
-        chan.messages.fetch(msg.id).then(async (curMsg) => {
-          if (curMsg == null) {
-            return;
-          }
-          addBaselinePoints(client, msg);
-        });
+  await messages.forEach((msg) => {
+    client.channels.fetch(msg.channelId).then((chan) => {
+      chan.messages.fetch(msg.messageId).then(async (curMsg) => {
+        if (curMsg == null) {
+          return;
+        }
+        await addBaselinePoints(client, msg);
       });
-    }
+    });
   });
+
+  await States.upsert({ id: DEFAUL_STATE_INDEX, baselinePointsTime: new Date() }, { id: DEFAUL_STATE_INDEX });
 }
 
 async function addBaselinePoints(client, msg) {
-  Ambassadors.findOne({ where: { id: msg.authorId } }).then((ambassador) => {
+  await Ambassadors.findOne({ where: { id: msg.author } }).then(async (ambassador) => {
     if (ambassador) {
-      if(!(new Date() - ambassador.lastBaseLinePointTime) >= 86400000 ) {
-        return
+      if (
+        (new Date() - ambassador.lastBaseLinePointTime) <
+        BASELINE_POINT_AWARD_MILLIS
+      ) {
+        return;
       }
       const prevPoints = ambassador.points;
-      Ambassadors.update(
-        { points: prevPoints + 20, lastBaseLinePointTime: new Date()},
+      await Ambassadors.update(
+        {
+          points: prevPoints + BASELINE_POINT,
+          lastBaseLinePointTime: new Date(),
+        },
         { where: { id: ambassador.id } }
-      ).then((affectedRows) => {
+      ).then(async (affectedRows) => {
         if (affectedRows > 0) {
-          try {
-            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
-              if(ambassadorPoint){
-                EpochPoints.update(
-                  {points: ambassadorPoint.points + 20},
-                  {where: {id: ambassadorPoint.id}},
-                );
-              } else {
-                EpochPoints.create({
-                  id: ambassador.id,
-                  points: 20,
-                  channelId: msg.channelId,
-                });
-              }
-            });
-          }catch(err) {
-            console.log(`Error updating epoch point: ${err}`);
-          }
-          client.channels.fetch(msg.channelId).then((chan) => {
-              return chan.send(
-                `🎉 Great job, ${ambassador.displayName}! You’ve earned 20 points for posting in the last 24 hours. Keep it up!`
-              );
+          await client.channels.fetch(msg.channelId).then((chan) => {
+            return chan.send(
+              `🎉 Great job, ${ambassador.displayName}! You’ve earned 20 points for posting in the last 24 hours. Keep it up!`
+            );
           });
-          
         }
       });
     }
@@ -518,61 +494,63 @@ async function addBaselinePoints(client, msg) {
 }
 
 async function determineEpochWinner(client) {
-  const epochPoints = await EpochPoints.findAll({order: Sequelize.literal('points DESC')});
-  if (epochPoints.length > 0 ){
+  const state = await States.findOne({where: {id: DEFAUL_STATE_INDEX}});
+  if(!state){
+    return
+  }
+
+  const nextEpoch = Date.now() + 1000 * EPOCH_IN_SECONDS * NUM_OF_EPOCHS_TO_WIN;
+
+  if(state.nextEpochTime < state.startupTime){
+    await States.upsert({ id: DEFAUL_STATE_INDEX, nextEpochTime: nextEpoch}, { id: DEFAUL_STATE_INDEX })
+  }
+
+  if (new Date() > state.nextEpochTime) {
+    return
+  }
+
+  const epochPoints = await EpochPoints.findAll({
+    order: Sequelize.literal("points DESC"),
+  });
+  
+  if (epochPoints.length > 0) {
     const epochWinner = epochPoints[0];
     const channel = await client.channels.fetch(epochWinner.channelId);
     let fields = [];
-    field = {
-      name: "Author",
-      value: "Ambassador Bot",
-    };
-    fields.push(field);
-    const winner = await channel.members.fetch(epochWinner.id);
+    const winner = await channel.guild.members.fetch(epochWinner.id);
 
-    fields.push(
-      {
-        name: "Winner of this competition round is",
-        value: winner.displayName,
-        inline: true,
-      }
-    );
+    fields.push({
+      name: "🏆 Winner of this round: ",
+      value: winner.displayName,
+      inline: false,
+    });
 
-    const nextEpoch = new Date() + 7 * 259200 * 1000;
-    fields.push(
-      {
-        name: "Next Epoch winner will be announced in",
-        value: `<t:${String(nextEpoch)}:R>`,
-        inline: true,
-      }
-    );
-
+    fields.push({
+      name: "⏳ Next Epoch winner announcement:",
+      value: `${time(new Date(nextEpoch), TimestampStyles.RelativeTime)}`,
+      inline: false,
+    });
 
     const embed = new EmbedBuilder()
-    .setColor(0x0099ff)
-    .setTitle("Epoch competition winner")
-    .setAuthor({
-      name: "Posted by: " + client.user.username,
-      iconURL: client.user.displayAvatarURL(),
-    })
-    .addFields(
-      fields
-    )
-    .setTimestamp()
-    .setFooter({
-      text: "Epoch winner ",
-      iconURL: client.user.displayAvatarURL(), 
-    });
-  
+      .setColor(0x0099ff)
+      .setTitle("Epoch Competition Winner Announcement")
+      .addFields(fields)
+      .setTimestamp()
+      .setFooter({
+        text: "Epoch winner announcement",
+      });
+
     if (channel != null) {
       channel.send({ embeds: [embed] });
-    }  
+    }
+
+    await States.upsert({ id: DEFAUL_STATE_INDEX, epochWinner: epochWinner.id, nextEpochTime: nextEpoch}, { id: DEFAUL_STATE_INDEX });
+  } else {
+    await States.upsert({ id: DEFAUL_STATE_INDEX, nextEpochTime: nextEpoch}, { id: DEFAUL_STATE_INDEX });
   }
-
   // truncate the db.
-  EpochPoints.truncate();
+  await EpochPoints.truncate();
 }
-
 
 module.exports.has72HoursPassed = has72HoursPassed;
 module.exports.assignRoles = assignRoles;
@@ -583,3 +561,7 @@ module.exports.scheduleTaskFromDate = scheduleTaskFromDate;
 module.exports.updatePoints = updatePoints;
 module.exports.isMoreThanGivenMinutes = isMoreThanGivenMinutes;
 module.exports.determineEpochWinner = determineEpochWinner;
+module.exports.assignBaseLinePoints = assignBaseLinePoints;
+module.exports.BASELINE_POINT_AWARD_MILLIS = BASELINE_POINT_AWARD_MILLIS;
+module.exports.EPOCH_IN_SECONDS = EPOCH_IN_SECONDS;
+module.exports.DEFAUL_STATE_INDEX = DEFAUL_STATE_INDEX;

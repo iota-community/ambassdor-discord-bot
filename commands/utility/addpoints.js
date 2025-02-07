@@ -34,21 +34,21 @@ module.exports = {
                 Ambassadors.update({ points: prevPoints + points }, { where: { id: ambassador.id } }).then(affectedRows => {
                     if (affectedRows > 0) {
                         try {
-                            EpochPoints.findOne({ where: { id: ambassador.id } }).then((ambassadorPoint) => {
-                                if (ambassadorPoint) {
-                                    EpochPoints.update(
-                                        { points: ambassadorPoint.points + points },
-                                        { where: { id: ambassadorPoint.id } },
-                                    );
-                                } else {
-                                    EpochPoints.create({
-                                        id: ambassador.id,
-                                        points: points,
-                                        channelId: interaction.channelId,
-                                    });
-                                }
+                            EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
+                              if(ambassadorPoint){
+                                EpochPoints.update(
+                                  {points: ambassadorPoint.points + points},
+                                  {where: {id: ambassadorPoint.id}},
+                                );
+                              } else {
+                                EpochPoints.create({
+                                  id: ambassador.id,
+                                  points: points,
+                                  channelId: interaction.channelId,
+                                });
+                              }
                             });
-                        } catch (err) {
+                        }catch(err) {
                             console.log(`Error updating epoch point: ${err}`);
                         }
                         interaction.editReply(`${points} Points added to ${user.username}  successfully.`);

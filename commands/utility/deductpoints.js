@@ -37,27 +37,27 @@ module.exports = {
                 }
                 Ambassadors.update({ points: curPoints }, { where: { id: ambassador.id } }).then(affectedRows => {
                     try {
-                        EpochPoints.findOne({ where: { id: ambassador.id } }).then((ambassadorPoint) => {
-                            if (ambassadorPoint) {
-                                const ambPoints = ambassadorPoint.points - points;
-                                // Avoid negative points.
-                                if (ambPoints < 0) {
-                                    ambPoints = 0;
-                                }
-
-                                EpochPoints.update(
-                                    { points: ambPoints },
-                                    { where: { id: ambassadorPoint.id } },
-                                );
-                            } else {
-                                EpochPoints.create({
-                                    id: ambassador.id,
-                                    points: 0,
-                                    channelId: interaction.channelId,
-                                });
+                        EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
+                          if(ambassadorPoint){
+                            const ambPoints = ambassadorPoint.points - points;
+                            // Avoid negative points.
+                            if (ambPoints < 0) {
+                                ambPoints = 0;
                             }
+            
+                            EpochPoints.update(
+                              {points: ambPoints},
+                              {where: {id: ambassadorPoint.id}},
+                            );
+                          } else {
+                            EpochPoints.create({
+                              id: ambassador.id,
+                              points: 0,
+                              channelId: interaction.channelId,
+                            });
+                          }
                         });
-                    } catch (err) {
+                    }catch(err) {
                         console.log(`Error updating epoch point: ${err}`);
                     }
                     if (affectedRows > 0) {

@@ -10,6 +10,15 @@ const Tweet = {
 	},
     author: {
         type: Sequelize.STRING,
-        allowNull: true,
     },
+    channelId: {
+        type: Sequelize.STRING,
+    },
+    messageId: {
+        type: Sequelize.STRING,
+        unique: true
+    },
+    
 }
+
+module.exports.Tweet = Tweet;

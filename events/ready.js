@@ -1,44 +1,39 @@
 const { Events } = require('discord.js');
-const { Ambassadors, Messages, TopPoints, Tweets, EpochPoints } = require('../models/database.js');
+const { Ambassadors, Messages, TopPoints, Tweets, EpochPoints, States } = require('../models/database.js');
 const { epochStart, guildId } = require("../config.json")
-const { assignRoles, scheduleTaskFromDate, updatePoints } = require("../helpers/helpers.js")
-
-// const epochInSeconds = 259200; // 72 hours.
-
-const epochInSeconds = 259200; // 72 hours.
-
-// time in millis that bonus points should be awarded for posts.
-const baseLinePointsAwardMillis = 86400000; 
-
+const { assignRoles, scheduleTaskFromDate, updatePoints, assignBaseLinePoints, determineEpochWinner,
+	EPOCH_IN_SECONDS, BASELINE_POINT_AWARD_MILLIS, DEFAUL_STATE_INDEX } = require("../helpers/helpers.js");
 
 module.exports = {
 	name: Events.ClientReady,
 	once: true,
-	execute(client) {
-		Ambassadors.sync().then(() => {
+	async execute(client) {
+		await Ambassadors.sync().then(async () => {
 			// get guild and assign roles.
-			client.guilds.fetch(guildId).then(guild => {
+			await client.guilds.fetch(guildId).then(guild => {
 				// Reassign role every epoch
-				const epochStartDate = epochStart;
-				scheduleTaskFromDate(epochStartDate, epochInSeconds, assignRoles, guild);
+				scheduleTaskFromDate(epochStart, EPOCH_IN_SECONDS, assignRoles, guild);
 			})
 		});
 
-		Messages.sync().then(() => {
-			// Run update points every 120000 seconds.
-			updatePoints(120, client);
+		await Messages.sync().then(async () => {
+			// Run update points every 30000 seconds.
+			await updatePoints(30000, client);
 		});
-		TopPoints.sync();
-		Tweets.sync();
-		EpochPoints.sync();
+		await TopPoints.sync();
+		await Tweets.sync();
+		await EpochPoints.sync();
+		await States.sync().then(()=>{
+			States.upsert({ id: DEFAUL_STATE_INDEX, startupTime: new Date()}, { id: DEFAUL_STATE_INDEX });
+		});
 
-		setInterval(() => {
+		await setInterval(() => {
 			assignBaseLinePoints(client);
-		}, baseLinePointsAwardMillis);
+		}, BASELINE_POINT_AWARD_MILLIS);
 
-		setInterval(() => {
+		await setInterval(() => {
 			determineEpochWinner(client);
-		}, epochInSeconds * 1000 * 7);
+		}, EPOCH_IN_SECONDS * 1000);
 
 		console.log(`Ready! Logged in as ${client.user.tag}`);
 	},

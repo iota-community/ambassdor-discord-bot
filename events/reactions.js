@@ -32,7 +32,7 @@ module.exports = {
                 if (msg) {
                     Messages.destroy(
                         { where: { id: msg.id } }
-                    ).then((msg) => {
+                    ).then(() => {
                         reaction.message.reply(`This message has been voided.`);
                     });
 
@@ -41,5 +41,6 @@ module.exports = {
         }else{
             console.log(`Failed to void message, admin or invalid emoji`)
         };
+        
     },
 };
