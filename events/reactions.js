@@ -18,29 +18,31 @@ module.exports = {
             }
         };
 
-        const adminRole = reaction.message.member.roles.cache.some(r => r.id === adminRoleId);
+        const guildMember = await reaction.message.guild.members.fetch(user.id);
+        const adminRole = await guildMember.roles.cache.some(r => r.id === adminRoleId);
         if (!adminRole) {
             return reaction.message.reply(`Only admin can void a message`);
         }
         
-        if (reaction.emoji.name == "🥒" && adminRole) {
+        if (reaction.emoji.name == "🥒") {
             if (isMoreThanGivenMinutes(reaction.message.createdTimestamp, 24 * 60)) {
                 return reaction.message.reply(`Sorry, the action cannot be performed because the message void time has expired`);
             };
 
-            Messages.findOne({ where: { id: reaction.message.id } }).then(msg => {
+            await Messages.findOne({ where: { id: reaction.message.id } }).then(async msg => {
                 if (msg) {
-                    Messages.destroy(
+                    await Messages.destroy(
                         { where: { id: msg.id } }
                     ).then(() => {
                         reaction.message.reply(`This message has been voided.`);
                     });
 
+                } else {
+                    reaction.message.reply(`Unable to void the message. The allowed time for voiding has likely expired.`);
                 };
             });
         }else{
             console.log(`Failed to void message, admin or invalid emoji`)
         };
-        
     },
 };
