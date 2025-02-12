@@ -9,18 +9,18 @@ const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'
 const userPoints = {};
 
 const client = new Client({
-intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
-	GatewayIntentBits.GuildMessageReactions,
-],
-partials: [
-	Partials.Message, 
-	Partials.Channel, 
-	Partials.Reaction
-],
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildMessageReactions,
+	],
+	partials: [
+		Partials.Message,
+		Partials.Channel,
+		Partials.Reaction
+	],
 });
 
 client.commands = new Collection();
@@ -50,5 +50,17 @@ for (const file of eventFiles) {
 		client.on(event.name, (...args) => event.execute(...args).catch(console.error));
 	}
 }
+
+client.on('error', (error) => {
+	console.error('❗ Client Error:', error);
+});
+
+client.on('rateLimit', (info) => {
+	console.warn('🚦 Rate Limit Hit:', info);
+});
+
+client.on('invalidRequestWarning', (info) => {
+	console.warn('🚫 Invalid Request Warning:', info);
+});
 
 client.login(token);
