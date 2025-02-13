@@ -130,7 +130,7 @@ async function assignRoles(guild) {
     order: Sequelize.literal("points DESC"),
   });
   for (let idx = 0; idx < toppoints.length; idx++) {
-    toppoint = toppoints[idx];
+    let toppoint = toppoints[idx];
     await Ambassadors.findOne({ where: { id: toppoint.authorId } }).then(async (ambassador) => {
         if (ambassador) {
           let point = 0;
@@ -145,7 +145,15 @@ async function assignRoles(guild) {
               point = THIRD_BONUS_POINT;
               break;
           }
-          const channel = await guild.client.channels.fetch(toppoint.channelId);
+          
+          let channel;
+          try { 
+            channel = await guild.client.channels.fetch(toppoint.channelId);
+          } catch (err) {
+            console.log('Error fetching message in assignRoles:', err);
+            return;
+          }
+          
           const prevPoints = ambassador.points;
           await Ambassadors.update(
             { points: prevPoints + point },
@@ -155,8 +163,16 @@ async function assignRoles(guild) {
           });
 
           chan = channel;
-          const msg = await channel.messages.fetch(toppoint.id);
-          field = {
+          
+          let msg;
+          try {
+            msg = await channel.messages.fetch(toppoint.id);
+          } catch (err) {
+            console.log('Error fetching message in assignRoles:', err);
+            return;
+          }
+
+          let field = {
             name: "Author",
             value: msg.author.tag,
           };
@@ -399,11 +415,16 @@ async function addPoints(client, msg) {
             }
 
             client.channels.fetch(msg.channelId).then((chan) => {
-              chan.messages.fetch(msg.id).then((curMsg) => {
-                return curMsg.reply(
-                  `${msg.points} Points added to ${ambassador.displayName} for this post.`
-                );
-              });
+              try {
+                chan.messages.fetch(msg.id).then((curMsg) => {
+                  return curMsg.reply(
+                    `${msg.points} Points added to ${ambassador.displayName} for this post.`
+                  );
+                });
+              } catch (err) {
+                console.log('Error fetching message in addPoints:', err);
+                return;
+              }
             });
           });
         }
@@ -426,12 +447,17 @@ async function fetchPoints(client) {
 
     if (currentTime > (msg.createdTimestamp + TWENTY_FOUR_HOURS_IN_MILLIS)) {
       client.channels.fetch(msg.channelId).then((chan) => {
-        chan.messages.fetch(msg.id).then(async (curMsg) => {
-          if (curMsg == null) {
-            return;
-          }
-          await addPoints(client, msg);
-        });
+        try {
+          chan.messages.fetch(msg.id).then(async (curMsg) => {
+            if (curMsg == null) {
+              return;
+            }
+            await addPoints(client, msg);
+          });
+        } catch (err) {
+          console.log('Error fetching message in fetchPoints:', err);
+          return;
+        }
       });
     }
   });
@@ -452,12 +478,17 @@ async function assignBaseLinePoints(client) {
 
   await messages.forEach((msg) => {
     client.channels.fetch(msg.channelId).then((chan) => {
-      chan.messages.fetch(msg.messageId).then(async (curMsg) => {
-        if (curMsg == null) {
-          return;
-        }
-        await addBaselinePoints(client, msg);
-      });
+      try {
+        chan.messages.fetch(msg.messageId).then(async (curMsg) => {
+          if (curMsg == null) {
+            return;
+          }
+          await addBaselinePoints(client, msg);
+        });
+      } catch (err) {
+        console.log('Error fetching message in assignBaseLinePoints:', err);
+        return;
+      }
     });
   });
 
