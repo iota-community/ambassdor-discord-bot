@@ -35,7 +35,6 @@ module.exports = {
                 try {
                     return reaction.message.reply(`Only admin can void a message`);
                 } catch (_error) {
-                    console.error(`Posting message to weird guild: ${guildIdFromMsg}`);
                     return;
                 }
             }
