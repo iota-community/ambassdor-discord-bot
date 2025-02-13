@@ -18,7 +18,7 @@ module.exports = {
       let fields = [];
 
       ambassadors.forEach((ambassador) => {
-        field = {
+        const field = {
           name: ambassador.displayName,
           value: String(ambassador.points),
           inline: false,
