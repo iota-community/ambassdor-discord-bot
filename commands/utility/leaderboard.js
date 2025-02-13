@@ -8,41 +8,45 @@ module.exports = {
     .setName("leaderboard")
     .setDescription("View ambassadors leaderboard"),
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    try {
+      await interaction.deferReply({ ephemeral: true });
 
-    const ambassadors = await Ambassadors.findAll({
-      attributes: ["points", "displayName"], order: Sequelize.literal('points DESC'),
-    });
-
-    let fields = [];
-
-    ambassadors.forEach((ambassador) => {
-      field = {
-        name: ambassador.displayName,
-        value: String(ambassador.points),
-        inline: false,
-      };
-
-      fields.push(field);
-    });
-
-    const embed = new EmbedBuilder()
-      .setColor(0x0099ff)
-      .setTitle("The Ambassadors Leaderboard")
-      .setAuthor({
-        name: "Posted by: " + interaction.client.user.username,
-        iconURL: interaction.client.user.displayAvatarURL(),
-      })
-      .setDescription("Ambassadors displayname and points.")
-      .addFields(
-        fields
-      )
-      .setTimestamp()
-      .setFooter({
-        text: "The leaderboard ",
-        iconURL: interaction.client.user.displayAvatarURL(), 
+      const ambassadors = await Ambassadors.findAll({
+        attributes: ["points", "displayName"], order: Sequelize.literal('points DESC'),
       });
 
-    interaction.editReply({ embeds: [embed] });
+      let fields = [];
+
+      ambassadors.forEach((ambassador) => {
+        field = {
+          name: ambassador.displayName,
+          value: String(ambassador.points),
+          inline: false,
+        };
+
+        fields.push(field);
+      });
+
+      const embed = new EmbedBuilder()
+        .setColor(0x0099ff)
+        .setTitle("The Ambassadors Leaderboard")
+        .setAuthor({
+          name: "Posted by: " + interaction.client.user.username,
+          iconURL: interaction.client.user.displayAvatarURL(),
+        })
+        .setDescription("Ambassadors displayname and points.")
+        .addFields(
+          fields
+        )
+        .setTimestamp()
+        .setFooter({
+          text: "The leaderboard ",
+          iconURL: interaction.client.user.displayAvatarURL(), 
+        });
+
+      interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+			console.error('❗ Error in leaderboard cmd:', error);
+		}
   },
 };
