@@ -24,6 +24,9 @@ module.exports = {
           inline: false,
         };
 
+        if (fields.length >= 25) {
+          return
+        }
         fields.push(field);
       });
 
