@@ -425,7 +425,7 @@ async function addPoints(client, msg) {
                 console.log('Error fetching message in addPoints:', err);
                 return;
               }
-            });
+            }).catch(console.error);
           });
         }
       });
@@ -458,7 +458,7 @@ async function fetchPoints(client) {
           console.log('Error fetching message in fetchPoints:', err);
           return;
         }
-      });
+      }).catch(console.error);
     }
   });
 }
@@ -489,7 +489,7 @@ async function assignBaseLinePoints(client) {
         console.log('Error fetching message in assignBaseLinePoints:', err);
         return;
       }
-    });
+    }).catch(console.error);
   });
 
   await States.upsert({ id: DEFAUL_STATE_INDEX, baselinePointsTime: new Date() }, { id: DEFAUL_STATE_INDEX });
@@ -517,7 +517,7 @@ async function addBaselinePoints(client, msg) {
             return chan.send(
               `🎉 Great job, ${ambassador.displayName}! You’ve earned 20 points for posting in the last 24 hours. Keep it up!`
             );
-          });
+          }).catch(console.error);
         }
       });
     }
