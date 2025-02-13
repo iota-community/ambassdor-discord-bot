@@ -61,4 +61,13 @@ client.on('invalidRequestWarning', (info) => {
 	console.warn('🚫 Invalid Request Warning:', info);
 });
 
+process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+    console.error("Uncaught Exception:", error);
+});
+
+
 client.login(token);
