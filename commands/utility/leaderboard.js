@@ -18,16 +18,18 @@ module.exports = {
       let fields = [];
 
       ambassadors.forEach((ambassador) => {
-        const field = {
-          name: ambassador.displayName,
-          value: String(ambassador.points),
-          inline: false,
-        };
+        if (Number(ambassador.points) > 0) {
+          const field = {
+            name: ambassador.displayName,
+            value: String(ambassador.points),
+            inline: false,
+          };
 
-        if (fields.length >= 25) {
-          return
+          if (fields.length >= 25) {
+            return
+          }
+          fields.push(field);
         }
-        fields.push(field);
       });
 
       const embed = new EmbedBuilder()
