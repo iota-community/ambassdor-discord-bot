@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { Ambassadors } = require('../../models/database.js');
+const { Ambassadors, EpochPoints } = require('../../models/database.js');
 const { adminRoleId } = require('../../config.json');
 
 
@@ -31,7 +31,7 @@ module.exports = {
 
             Ambassadors.findOne({ where: { id: user.id } }).then(ambassador => {
                 if (ambassador) {
-                    const curPoints = ambassador.points - points;
+                    let curPoints = ambassador.points - points;
                     // Avoid negative points.
                     if (curPoints < 0) {
                         curPoints = 0;
@@ -40,7 +40,7 @@ module.exports = {
                         try {
                             EpochPoints.findOne({where: {id: ambassador.id}}).then((ambassadorPoint) => {
                             if(ambassadorPoint){
-                                const ambPoints = ambassadorPoint.points - points;
+                                let ambPoints = ambassadorPoint.points - points;
                                 // Avoid negative points.
                                 if (ambPoints < 0) {
                                     ambPoints = 0;

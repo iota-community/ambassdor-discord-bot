@@ -7,7 +7,7 @@ const {
   States,
   Tweets,
 } = require("../models/database.js");
-const { Sequelize, Op, json, where } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
 const { EmbedBuilder, time, TimestampStyles } = require("discord.js");
 
 const NOVICE_MAX = 249;
@@ -17,7 +17,7 @@ const ADVANCED_MIN = 750;
 const ADVANCED_MAX = 4999;
 const EXPERT_MIN = 5000;
 
-const NOVICE_DECAY = 0;
+// const NOVICE_DECAY = 0;
 const INTERMIDIATE_DECAY = 100;
 const ADVANCED_DECAY = 250;
 const EXPERT_DECAY = 500;
@@ -238,7 +238,7 @@ async function assignRoles(guild) {
     attributes: ["id", "points"],
   });
 
-  for(i = 0; i < ambassadors.length; i++) {
+  for (let i = 0; i < ambassadors.length; i++) {
     let ambassador = ambassadors[i];
     // delete previous ambassador's role.
     await unassignRole(guild, ambassador).then(async () => {

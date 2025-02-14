@@ -17,11 +17,11 @@ module.exports = {
 				message.content.includes("twitter.com")
 			) {
 				// Extract tweet Id.
-				tweetId = extractTweetId(message.content);
+				const tweetId = extractTweetId(message.content);
 				// Return if it fail to extract Tweet Id.
 				if (tweetId === null) {
 					console.log(`unable to extract Id for tweet ${message.content}`);
-					return message.reply(`Unable to extract tweet Id.`);
+					return message.reply(`Unable to extract tweet ${tweetId}.`);
 				}
 				// Fetch tweet.
 				fetchTweet(tweetId).then((tweet) => {
@@ -50,28 +50,13 @@ module.exports = {
 						} else {
 							// get tweet metrics and check for possibe null values.
 							// If value is null, set value to 0.
-							likes = tweet.likes;
-							if (!likes) {
-								likes = 0;
-							}
-
-							retweets = tweet.retweets;
-							if (!retweets) {
-								retweets = 0;
-							}
-
-							replies = tweet.replies;
-							if (!replies) {
-								replies = 0;
-							}
-
-							views = tweet.views;
-							if (!views) {
-								views = 0;
-							}
+							const likes = tweet.likes || 0;
+							const retweets = tweet.retweets || 0;
+							const replies = tweet.replies || 0;
+							const views = tweet.views || 0;
 
 							// Calculate points
-							points = calculatePoints({
+							let points = calculatePoints({
 								likeCount: likes,
 								retweetCount: retweets,
 								replyCount: replies,
@@ -120,9 +105,15 @@ module.exports = {
 										);
 									}
 								}
-							);
+							).catch((error) => {
+								console.log(`unable to fetch ambassador ${message.author.id} - Error: ${error?.message}`);
+								return message.reply(`Unable to fetch ambassador ${message.author.id}.`);
+							});
 						}
 					});
+				}).catch((error) => {
+					console.log(`unable to fetch tweet ${tweetId} - Error: ${error?.message}`);
+					return message.reply(`Unable to fetch tweet ${tweetId}.`);
 				});
 			}
 		} catch (error) {
