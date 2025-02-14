@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { Ambassadors } = require('../../models/database.js');
+const { Ambassadors, EpochPoints } = require('../../models/database.js');
 const { adminRoleId } = require('../../config.json');
 
 

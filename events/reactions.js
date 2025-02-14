@@ -26,6 +26,7 @@ module.exports = {
                     return;
                 }
             } catch (_error) {
+                console.error(`Failed to get guild id from reaction message - Error: ${_error?.message}`);
                 return;
             }
 
@@ -35,6 +36,7 @@ module.exports = {
                 try {
                     return reaction.message.reply(`Only admin can void a message`);
                 } catch (_error) {
+                    console.error(`Failed to reply reaction message - Error: ${_error?.message}`);
                     return;
                 }
             }

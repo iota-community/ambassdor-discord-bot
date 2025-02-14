@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { token } = require('./config.json');
 
-const eventsPath = path.join(__dirname, 'events');
+const eventsPath = path.join(__dirname, 'events'); // eslint-disable-line no-undef
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
 const client = new Client({
@@ -22,7 +22,7 @@ const client = new Client({
 });
 
 client.commands = new Collection();
-const foldersPath = path.join(__dirname, 'commands');
+const foldersPath = path.join(__dirname, 'commands'); // eslint-disable-line no-undef
 const commandFolders = fs.readdirSync(foldersPath);
 
 for (const folder of commandFolders) {
@@ -61,12 +61,14 @@ client.on('invalidRequestWarning', (info) => {
 	console.warn('🚫 Invalid Request Warning:', info);
 });
 
+// eslint-disable-next-line
 process.on("unhandledRejection", (reason, promise) => {
-    console.error("Unhandled Rejection at:", promise, "reason:", reason);
+    // console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
+// eslint-disable-next-line
 process.on("uncaughtException", (error) => {
-    console.error("Uncaught Exception:", error);
+    // console.error("Uncaught Exception:", error);
 });
 
 

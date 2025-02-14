@@ -1,8 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { Ambassadors } = require("../../models/database.js");
-const { TwitterApi } = require("twitter-api-v2");
-const { twitter_api_key, twitter_api_key_secret } = require('../../config.json');
-
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -34,7 +31,7 @@ module.exports = {
                         ).then((affectedRows) => {
                             if (affectedRows > 0) {
                                 return interaction.editReply({
-                                    content: `Your X id has been unlinked. Link your X ID using \link`,
+                                    content: `Your X id has been unlinked. Link your X ID using \\link`,
                                     ephemeral: true,
                                 });
                             } else {

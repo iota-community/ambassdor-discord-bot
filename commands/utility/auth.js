@@ -50,7 +50,7 @@ module.exports = {
                 displayName: interaction.user.displayName,
                 oauth_token: token,
                 oauth_token_secret: secret,
-              }).then((amb) => {
+              }).then((amb) => { // eslint-disable-line no-unused-vars
                 return interaction.editReply({
                   content: `Visit the provided URL to link your X account\n  ${url}.`,
                   ephemeral: true,
