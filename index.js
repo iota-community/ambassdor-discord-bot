@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { token } = require('./config.json');
 
-const eventsPath = path.join(__dirname, 'events'); // eslint-disable-line no-undef
+const eventsPath = path.join(__dirname, 'events');// eslint-disable-line no-undef
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
 const client = new Client({
@@ -63,12 +63,12 @@ client.on('invalidRequestWarning', (info) => {
 
 // eslint-disable-next-line
 process.on("unhandledRejection", (reason, promise) => {
-    // console.error("Unhandled Rejection at:", promise, "reason:", reason);
+    console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 // eslint-disable-next-line
 process.on("uncaughtException", (error) => {
-    // console.error("Uncaught Exception:", error);
+    console.error("Uncaught Exception:", error);
 });
 
 

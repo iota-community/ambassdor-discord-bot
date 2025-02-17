@@ -12,12 +12,19 @@ const State = {
     epochWinner: {
         type: Sequelize.STRING,
     },
-    nextEpochTime: {
+    nextEpochRoundTime: {
         type: Sequelize.BIGINT,
     },
     startupTime: {
         type: Sequelize.BIGINT,
-    }
+    },
+    epoch: {
+        type: Sequelize.INTEGER,
+        defaultValue: 1,
+    },
+    nextEpochTime: {
+        type: Sequelize.BIGINT,
+    },
 }
 
 module.exports.State = State;

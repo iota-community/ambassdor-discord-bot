@@ -1,7 +1,15 @@
-const { SlashCommandBuilder } = require("discord.js");
-const { Ambassadors } = require("../../models/database.js");
-const { EmbedBuilder } = require("discord.js");
-const Sequelize = require('sequelize');
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  time,
+  TimestampStyles,
+} = require("discord.js");
+const { Ambassadors, States } = require("../../models/database.js");
+const {
+  logToDiscord,
+  DEFAULT_STATE_INDEX,
+  EPOCH_IN_SECONDS,
+} = require("../../helpers/helpers.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,46 +20,63 @@ module.exports = {
       await interaction.deferReply({ ephemeral: true });
 
       const ambassadors = await Ambassadors.findAll({
-        attributes: ["points", "displayName"], order: Sequelize.literal('points DESC'),
+        attributes: ["points", "displayName"],
+        order: [["points", "DESC"]],
       });
 
-      let fields = [];
+      // Filter ambassadors with points > 0, limit to 25, and map to embed fields.
+      const fields = ambassadors
+        .filter((ambassador) => Number(ambassador.points) > 0)
+        .slice(0, 25)
+        .map((ambassador) => ({
+          name: ambassador.displayName,
+          value: String(ambassador.points),
+          inline: false,
+        }));
 
-      ambassadors.forEach((ambassador) => {
-        if (Number(ambassador.points) > 0) {
-          const field = {
-            name: ambassador.displayName,
-            value: String(ambassador.points),
-            inline: false,
-          };
-
-          if (fields.length >= 25) {
-            return
-          }
-          fields.push(field);
-        }
+      // Add additional state info if available.
+      const state = await States.findOne({
+        where: { id: DEFAULT_STATE_INDEX },
       });
+      if (state) {
+        const epochNum = state.epoch ?? 0;
+        fields.push({
+          name: "Current Epoch:",
+          value: `${epochNum}`,
+          inline: true,
+        });
+
+        let nextEpochTime =
+          state.nextEpochTime ??
+          new Date(state.startupTime + EPOCH_IN_SECONDS * 1000);
+        console.log(`Next Epoch time: ${nextEpochTime}`);
+        fields.push({
+          name: "⏳ Epoch ends:",
+          value: time(new Date(nextEpochTime), TimestampStyles.RelativeTime),
+          inline: false,
+        });
+      }
 
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
         .setTitle("The Ambassadors Leaderboard")
-        .setAuthor({
-          name: "Posted by: " + interaction.client.user.username,
-          iconURL: interaction.client.user.displayAvatarURL(),
-        })
-        .setDescription("Ambassadors displayname and points.")
-        .addFields(
-          fields
-        )
+        .setDescription("Here are the top ambassadors by points:")
+        .addFields(fields)
         .setTimestamp()
-        .setFooter({
-          text: "The leaderboard ",
-          iconURL: interaction.client.user.displayAvatarURL(), 
-        });
+        .setFooter({ text: "Leaderboard" });
 
-      interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-			console.error('❗ Error in leaderboard cmd:', error);
-		}
+      console.error("❗ Error in leaderboard command:", error);
+
+      // Log error to Discord
+      await logToDiscord(
+        `❗ **Error in leaderboard command:**\n\`\`\`${error.message}\`\`\``
+      );
+
+      await interaction.editReply(
+        "There was an error while executing this command."
+      );
+    }
   },
 };

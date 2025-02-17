@@ -1,68 +1,66 @@
-const { Events } = require('discord.js');
-const { adminRoleId, guildId } = require('../config.json');
-const { Messages } = require('../models/database.js')
-const { isMoreThanGivenMinutes } = require('../helpers/helpers.js')
+const { Events } = require("discord.js");
+const { adminRoleId, guildId } = require("../config.json");
+const { Messages } = require("../models/database.js");
+const { isMoreThanGivenMinutes } = require("../helpers/helpers.js");
+const { logToDiscord } = require("../helpers/helpers.js"); // Ensure this function is implemented.
 
 module.exports = {
-    name: Events.MessageReactionAdd,
-    async execute(reaction, user) {
+  name: Events.MessageReactionAdd,
+  async execute(reaction, user) {
+    try {
+      // Ensure the reaction is fully loaded
+      if (reaction.partial) {
         try {
-            // When a reaction is received, check if the structure is partial
-            if (reaction.partial) {
-                // If the message this reaction belongs to was removed, the fetching might result in an API error which should be handled
-                try {
-                    await reaction.fetch();
-                } catch (error) {
-                    console.error('Something went wrong when fetching the message:', error);
-                    // Return as `reaction.emoji` may be undefined/null
-                    return;
-                }
-            };
-
-            try {
-                const guildIdFromMsg = await reaction.message.guild.id;
-                if (guildIdFromMsg !== guildId) {
-                    console.error(`Received message from weird guild: ${guildIdFromMsg}`);
-                    return;
-                }
-            } catch (_error) {
-                console.error(`Failed to get guild id from reaction message - Error: ${_error?.message}`);
-                return;
-            }
-
-            const guildMember = await reaction.message.guild.members.fetch(user.id);
-            const adminRole = await guildMember.roles.cache.some(r => r.id === adminRoleId);
-            if (!adminRole) {
-                try {
-                    return reaction.message.reply(`Only admin can void a message`);
-                } catch (_error) {
-                    console.error(`Failed to reply reaction message - Error: ${_error?.message}`);
-                    return;
-                }
-            }
-            
-            if (reaction.emoji.name == "🥒") {
-                if (isMoreThanGivenMinutes(reaction.message.createdTimestamp, 24 * 60)) {
-                    return reaction.message.reply(`Sorry, the action cannot be performed because the message void time has expired`);
-                };
-
-                await Messages.findOne({ where: { id: reaction.message.id } }).then(async msg => {
-                    if (msg) {
-                        await Messages.destroy(
-                            { where: { id: msg.id } }
-                        ).then(() => {
-                            reaction.message.reply(`This message has been voided.`);
-                        });
-
-                    } else {
-                        reaction.message.reply(`Unable to void the message. The allowed time for voiding has likely expired.`);
-                    };
-                });
-            }else{
-                console.log(`Failed to void message, admin or invalid emoji`)
-            };
+          await reaction.fetch();
         } catch (error) {
-			console.error('❗ Error in reactions event:', error);
-		}
-    },
+          console.error("Error fetching reaction:", error);
+          return;
+        }
+      }
+
+      // Verify the message is from the correct guild
+      if (!reaction.message.guild || reaction.message.guild.id !== guildId) {
+        console.error(`❗ Ignored reaction from unauthorized guild: ${reaction.message.guild?.id}`);
+        return;
+      }
+
+      // Check if the reaction is the void emoji (🥒)
+      if (reaction.emoji.name !== "🥒") {
+        return;
+      }
+
+      // Fetch the reacting user as a guild member
+      const guildMember = await reaction.message.guild.members.fetch(user.id);
+
+      // Verify if the user is an admin
+      const isAdmin = guildMember.roles.cache.has(adminRoleId);
+      if (!isAdmin) {
+        return reaction.message.reply("🚫 Only admins can void a message.");
+      }
+
+      // Check if the message is older than the allowed voiding period (24 hours)
+      if (isMoreThanGivenMinutes(reaction.message.createdTimestamp, 24 * 60)) {
+        return reaction.message.reply("⏳ Sorry, the message void time has expired.");
+      }
+
+      // Attempt to find the message in the database
+      const msg = await Messages.findOne({ where: { id: reaction.message.id } });
+
+      if (!msg) {
+        return reaction.message.reply("⚠️ Unable to void the message. The allowed time for voiding has likely expired.");
+      }
+
+      // Delete the message from the database
+      await Messages.destroy({ where: { id: msg.id } });
+
+      // Notify the channel
+      await reaction.message.reply("✅ This message has been voided.");
+
+    } catch (error) {
+      console.error("❗ Error in MessageReactionAdd event:", error);
+
+      // Log error to Discord
+      await logToDiscord(`❗ **Error in MessageReactionAdd event:**\n\`\`\`${error.message}\`\`\``);
+    }
+  },
 };
