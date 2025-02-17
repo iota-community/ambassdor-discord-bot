@@ -361,10 +361,10 @@ async function addPoints(client, msg) {
     if (!curMsg) {
       await Messages.destroy({ where: { id: msg.id } });
       await logToDiscord(
-        `Error couldn't assign point for message ${msg.id} because message is no longer valid`,
+        `Error couldn't assign point for message ${msg.id} because message is no longer valid (or deleted)`,
         client
       );
-      console.log(`Error couldn't assign point for message ${msg.id} because message is no longer valid`);
+      console.log(`Error couldn't assign point for message ${msg.id} because message is no longer valid (or deleted)`);
       return;
     }
 
@@ -372,6 +372,33 @@ async function addPoints(client, msg) {
       where: { id: msg.authorId },
     });
     if (ambassador) {
+      // Re-calc Tweet points according its latest status
+      const tweetId = msg.tweetId;
+      const tweet = await fetchTweet(tweetId);
+      if (!tweet) {
+        await Messages.destroy({ where: { id: msg.id } });
+        await logToDiscord(
+          `❌ Unable to fetch tweet ${tweetId} for message ${msg.id}`,
+          client
+        );
+        return;
+      }
+
+      const likes = tweet.likes || 0;
+      const retweets = tweet.retweets || 0;
+      const replies = tweet.replies || 0;
+      const views = tweet.views || 0;
+
+      const points = calculatePoints({
+        likeCount: likes,
+        retweetCount: retweets,
+        replyCount: replies,
+        impressionCount: views,
+      });
+
+      msg.points = points;
+      ///////////////////
+
       const prevPoints = ambassador.points || 0;
       const prevTweets = ambassador.tweets || 0;
       await Ambassadors.update(
