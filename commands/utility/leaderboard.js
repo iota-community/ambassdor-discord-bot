@@ -21,14 +21,17 @@ module.exports = {
 
       const ambassadors = await Ambassadors.findAll({
         attributes: ["points", "displayName"],
+        where: {
+          "points": {
+            [Op.gt]: 0,
+          }
+        },
         order: [["points", "DESC"]],
+        limit: 25,
       });
 
-      // Filter ambassadors with points > 0, limit to 25, and map to embed fields.
-      const fields = ambassadors
-        .filter((ambassador) => Number(ambassador.points) > 0)
-        .slice(0, 25)
-        .map((ambassador) => ({
+      // Mmap to embed fields.
+      const fields = ambassadors.map((ambassador) => ({
           name: ambassador.displayName,
           value: String(ambassador.points),
           inline: false,
