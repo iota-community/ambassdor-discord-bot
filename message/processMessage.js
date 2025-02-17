@@ -1,4 +1,4 @@
-const { fetchTweet, extractTweetId, has72HoursPassed, logToDiscord } = require("../helpers/helpers");
+const { fetchTweet, extractTweetId, has72HoursPassed, logToDiscord, calculatePoints } = require("../helpers/helpers");
 const { Ambassadors, Messages, Tweets } = require("../models/database");
 
 async function processMessage(job) {
@@ -51,7 +51,23 @@ async function processMessage(job) {
       return message.reply(`X ID of the user who made the post doesn't match the linked X ID.`);
     }
 
-    let points = 20;
+    // let points = 20; // why 20 (bullshit)
+    
+    // Get tweet metrics and check for possibe null values.
+    // If value is null, set value to 0.
+    const likes = tweet.likes || 0;
+    const retweets = tweet.retweets || 0;
+    const replies = tweet.replies || 0;
+    const views = tweet.views || 0;
+
+    // Calculate points
+    const points = calculatePoints({
+      likeCount: likes,
+      retweetCount: retweets,
+      replyCount: replies,
+      impressionCount: views,
+    });
+    // points = parseFloat(points).toFixed(2);
 
     await Messages.create({
       id: message.id,
@@ -72,10 +88,10 @@ async function processMessage(job) {
     await logToDiscord(`✅ Tweet ${tweetId} successfully stored for ${message.author.username}.`, message.client);
 
     return message.reply(
-      `🤍 ${tweet.likes}   🔃 ${tweet.retweets}   💬 ${tweet.replies}   📊 ${tweet.views}\n${message.author.displayName} earned ${points} points.`
+      `🤍 ${likes}   🔃 ${retweets}   💬 ${replies}   📊 ${views}\n${points} points initially calculated for ${message.author.displayName}. Final credit, based on engagement, after 24 hours.`
     );
   } catch (error) {
-    console.error("❗ Error processing message:", error);
+    console.error("❗ Error processing message:", error?.message);
   }
 }
 
