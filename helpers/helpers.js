@@ -47,7 +47,7 @@ const NUM_OF_EPOCHS_TO_WIN = 10;
 async function logToDiscord(message, client) {
   try {
     if (!client) {
-      console.log("LogToDiscord: " + message);
+      console.log(message);
       return;
     }
     const logChannelId = log_channel_id ?? "";

@@ -1,15 +1,8 @@
 const {
   SlashCommandBuilder,
   EmbedBuilder,
-  time,
-  TimestampStyles,
 } = require("discord.js");
-const { Ambassadors, States } = require("../../models/database.js");
-const {
-  logToDiscord,
-  DEFAULT_STATE_INDEX,
-  EPOCH_IN_SECONDS,
-} = require("../../helpers/helpers.js");
+const { Ambassadors } = require("../../models/database.js");
 const { Op } = require('sequelize');
 
 module.exports = {
@@ -32,13 +25,16 @@ module.exports = {
         limit: 25,
       });
 
-      // Mmap to embed fields.
+      // Map to embed fields.
       const fields = ambassadors.map((ambassador) => ({
           name: ambassador.displayName,
           value: String(ambassador.points),
           inline: false,
         }));
 
+// If adding more fields here to the embed, it will get crashed due to max of 25 fields
+// TODO: what is this for?
+/*
       // Add additional state info if available.
       const state = await States.findOne({
         where: { id: DEFAULT_STATE_INDEX },
@@ -60,6 +56,7 @@ module.exports = {
           inline: false,
         });
       }
+*/
 
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
@@ -71,12 +68,7 @@ module.exports = {
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      console.error("❗ Error in leaderboard command:", error);
-
-      // Log error to Discord
-      await logToDiscord(
-        `❗ **Error in leaderboard command:**\n\`\`\`${error.message}\`\`\``
-      );
+      console.error("❗ Error in leaderboard command:", error.message);
 
       await interaction.editReply(
         "There was an error while executing this command."
