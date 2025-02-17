@@ -10,6 +10,7 @@ const {
   DEFAULT_STATE_INDEX,
   EPOCH_IN_SECONDS,
 } = require("../../helpers/helpers.js");
+const { Op } = require('sequelize');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -20,11 +21,12 @@ module.exports = {
       await interaction.deferReply({ ephemeral: true });
 
       const ambassadors = await Ambassadors.findAll({
-        attributes: ["points", "displayName"],
+        attributes: ["points", "displayName", "id"],
         where: {
-          "points": {
-            [Op.gt]: 0,
-          }
+          [Op.or]: [
+            { "points": { [Op.gt]: 0 } },
+            { "id": { [Op.eq]: interaction.user.id } }
+          ]
         },
         order: [["points", "DESC"]],
         limit: 25,
