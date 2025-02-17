@@ -29,9 +29,9 @@ const INTERMEDIATE_ROLE = "Seeder";
 const ADVANCED_ROLE = "Innovator";
 const EXPERT_ROLE = "Visionary";
 
-const EPOCH_IN_SECONDS = 60 //72 * 60 * 60;
-const BASELINE_POINT_AWARD_MILLIS = 120 * 1000 //86400000; // Every 24 hours
-const TWENTY_FOUR_HOURS_IN_MILLIS = 60 * 1000 //24 * 60 * 60 * 1000;
+const EPOCH_IN_SECONDS = 120//72 * 60 * 60;
+const BASELINE_POINT_AWARD_MILLIS = 86400000; // Every 24 hours
+const TWENTY_FOUR_HOURS_IN_MILLIS = 60*1000//24 * 60 * 60 * 1000;
 const BASELINE_POINT = 20;
 const SEVENTY_TWO_HOURS_IN_MILLIS = 72 * 60 * 60 * 1000;
 const DEFAULT_STATE_INDEX = 1;
@@ -266,12 +266,12 @@ async function assignRoles(guild) {
     }
 
     // Update epoch state
-    let epochTime = (state.nextEpochTime ?? Date.now()) + EPOCH_IN_SECONDS * 1000;
+    let epochTime = state.nextEpochTime ?? Date.now();
+    epochTime = epochTime + (EPOCH_IN_SECONDS * 1000);
     await States.upsert(
       { id: DEFAULT_STATE_INDEX, epoch: currentEpoch + 1, nextEpochTime: epochTime },
       { where: { id: DEFAULT_STATE_INDEX } }
     );
-
     // Clear the TopPoints table for the next epoch
     await TopPoints.truncate();
   } catch (error) {
@@ -331,6 +331,12 @@ function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
   } else {
     timeUntilNextRun = -timeSinceStart;
   }
+  try {
+    States.upsert({ id: DEFAULT_STATE_INDEX, nextEpochTime: Date.now() + timeUntilNextRun}, { id: DEFAULT_STATE_INDEX });
+  } catch(err) {
+    console.log(`Error udating next epoch time ${err}`);
+  }
+  
   console.log(
     `Next Epoch: ${new Date(now.getTime() + timeUntilNextRun).toLocaleString()}`
   );

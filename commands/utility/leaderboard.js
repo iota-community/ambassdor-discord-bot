@@ -49,10 +49,9 @@ module.exports = {
         let nextEpochTime =
           state.nextEpochTime ??
           new Date(state.startupTime + EPOCH_IN_SECONDS * 1000);
-        console.log(`Next Epoch time: ${nextEpochTime}`);
         fields.push({
           name: "⏳ Epoch ends:",
-          value: time(new Date(nextEpochTime), TimestampStyles.RelativeTime),
+          value: `${time(new Date(nextEpochTime), TimestampStyles.RelativeTime)} (${time(new Date(nextEpochTime), TimestampStyles.ShortDateTime)})`,
           inline: false,
         });
       }

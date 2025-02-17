@@ -34,7 +34,7 @@ module.exports = {
       await Tweets.sync();
       await EpochPoints.sync();
       await States.sync({alter: true});
-      await States.upsert({ id: DEFAULT_STATE_INDEX, startupTime: new Date(), nextEpochTime: Date.now() + EPOCH_IN_SECONDS * 1000 }, { id: DEFAULT_STATE_INDEX });
+      await States.upsert({ id: DEFAULT_STATE_INDEX, startupTime: new Date()}, { id: DEFAULT_STATE_INDEX });
 
       // Schedule baseline point assignment and epoch winner determination.
       setInterval(() => {
