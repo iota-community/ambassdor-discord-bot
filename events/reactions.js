@@ -31,9 +31,12 @@ module.exports = {
 
       // Fetch the reacting user as a guild member
       const guildMember = await reaction.message.guild.members.fetch(user.id);
+      if (!guildMember) {
+        return;
+      }
 
       // Verify if the user is an admin
-      const isAdmin = guildMember.roles.cache.has(adminRoleId);
+      const isAdmin = guildMember.roles?.cache?.has(adminRoleId);
       if (!isAdmin) {
         return reaction.message.reply("🚫 Only admins can void a message.");
       }
@@ -47,7 +50,7 @@ module.exports = {
       const msg = await Messages.findOne({ where: { id: reaction.message.id } });
 
       if (!msg) {
-        return reaction.message.reply("⚠️ Unable to void the message. The allowed time for voiding has likely expired.");
+        return reaction.message.reply("⚠️ Message not found.");
       }
 
       // Delete the message from the database
@@ -57,10 +60,10 @@ module.exports = {
       await reaction.message.reply("✅ This message has been voided.");
 
     } catch (error) {
-      console.error("❗ Error in MessageReactionAdd event:", error);
+      console.error("❗ Error in MessageReaction event:", error.message);
 
       // Log error to Discord
-      await logToDiscord(`❗ **Error in MessageReactionAdd event:**\n\`\`\`${error.message}\`\`\``);
+      await logToDiscord(`❗ **Error in MessageReaction event:**\n\`\`\`${error.message}\`\`\``);
     }
   },
 };

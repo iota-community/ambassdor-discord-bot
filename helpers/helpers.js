@@ -29,7 +29,7 @@ const INTERMEDIATE_ROLE = "Seeder";
 const ADVANCED_ROLE = "Innovator";
 const EXPERT_ROLE = "Visionary";
 
-const EPOCH_IN_SECONDS = 120//72 * 60 * 60;
+const EPOCH_IN_SECONDS = 72 * 60 * 60;
 const BASELINE_POINT_AWARD_MILLIS = 86400000; // Every 24 hours
 const TWENTY_FOUR_HOURS_IN_MILLIS = 60*1000//24 * 60 * 60 * 1000;
 const BASELINE_POINT = 20;
@@ -171,28 +171,23 @@ async function assignRoles(guild) {
 
     for (let idx = 0; idx < topPointsList.length; idx++) {
       const toppoint = topPointsList[idx];
-
-      // Fetch ambassador without loading all into memory
       const ambassador = await Ambassadors.findOne({
         where: { id: toppoint.authorId },
-        attributes: ["id"],
+        attributes: ["id", "displayName", "x_screen_name"],
       });
 
       if (ambassador) {
-        // Fetch channel only once
-        if (!chan) {
-          try {
-            chan = await guild.client.channels.fetch(toppoint.channelId);
-          } catch (err) {
-            console.error("Error fetching channel:", err);
-            await logToDiscord(`Error fetching channel: ${err.message}`, guild.client);
-            continue;
-          }
+        try {
+          chan = await guild.client.channels.fetch(toppoint.channelId);
+        } catch (err) {
+          console.error("Error fetching channel:", err.message);
+          await logToDiscord(`Error fetching channel: ${err.message}`, guild.client);
+          continue;
         }
 
-        congratulatoryHeader += ` <@${toppoint.authorId}>`;
+        congratulatoryHeader += ` <@${ambassador.displayName}>`;
         congratulatoryMsg +=
-          `${congratulatoryEmoji[idx]} <@${toppoint.authorId}> with **${toppoint.points} points!**\n`;
+          `${congratulatoryEmoji[idx]} <@${ambassador.x_screen_name}> with **${toppoint.points} points!**\n`;
       }
     }
 
@@ -203,7 +198,7 @@ async function assignRoles(guild) {
 
       congratulatoryMsg = `\n${congratulatoryMsg}\n Keep up the great work!`;
 
-      if (chan) await chan.send(congratulatoryHeader + congratulatoryMsg);
+      await chan.send(congratulatoryHeader + congratulatoryMsg);
     }
 
     // Process Ambassadors in Batches
@@ -319,9 +314,12 @@ function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
   const now = new Date();
   const start = new Date(startDate);
 
-  if (isNaN(start)) throw new Error("Invalid start date provided.");
-  if (intervalInSeconds < 1)
+  if (isNaN(start)) {
+    throw new Error("Invalid start date provided.");
+  }
+  if (intervalInSeconds < 1) {
     throw new Error("Interval must be at least one second.");
+  }
 
   const timeSinceStart = now - start;
   let timeUntilNextRun;
@@ -389,14 +387,14 @@ async function addPoints(client, msg) {
       const replies = tweet.replies || 0;
       const views = tweet.views || 0;
 
-      const points = calculatePoints({
+      const latestPoints = calculatePoints({
         likeCount: likes,
         retweetCount: retweets,
         replyCount: replies,
         impressionCount: views,
       });
 
-      msg.points = points;
+      msg.points = latestPoints;
       ///////////////////
 
       const prevPoints = ambassador.points || 0;
@@ -429,15 +427,23 @@ async function addPoints(client, msg) {
         );
       }
       await Messages.destroy({ where: { id: msg.id } });
-      const msgs = await TopPoints.findAll({
+      const topPts = await TopPoints.findAll({
         order: Sequelize.literal("points DESC"),
       });
-      if (msgs.length > 2) {
-        const msgToDelete = msgs.slice(2);
-        for (const el of msgToDelete) {
-          await TopPoints.destroy({ where: { id: el.id } });
-        }
+      // Keep only top 2 and thus delete the rest
+      if (topPts.length > 2) {
+        const idsToDelete = topPts.slice(2).map((msg) => msg.id);
+
+        // Mass deletion
+        await TopPoints.destroy({
+          where: {
+            id: {
+              [Op.in]: idsToDelete
+            }
+          }
+        });
       }
+      // Then, insert one new to have 3 top
       try {
         await TopPoints.create({
           id: msg.id,

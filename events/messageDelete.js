@@ -16,18 +16,12 @@ module.exports = {
         }
       }
 
-      
-      const msg = await Messages.findOne({ where: { id: message.id } });
-      if (msg) {
-        await Messages.destroy({ where: { id: message.id } });
-        await logToDiscord(`Invalidated message ${msg.id}`, message.client);
-      }
+      // Delete the message from the database
+      await Messages.destroy({ where: { id: message.id } });
+      await Tweets.destroy({ where: { messageId: message.id } })
 
-      const tweet = await Tweets.findOne({where: {messageId: message.id}})
-      if (tweet) {
-        await Tweets.destroy({ where: { id: tweet.id} });
-      }
-      // You could also send this info to a logging channel if needed
+      await logToDiscord(`Message (${message.id}) and its Tweet deleted`, message.client);
+      
     } catch (err) {
       console.error("Error processing deleted message:", err);
     }

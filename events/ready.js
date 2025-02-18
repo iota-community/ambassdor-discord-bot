@@ -20,20 +20,24 @@ module.exports = {
   once: true,
   async execute(client) {
     try {
-      // Synchronize Ambassadors and schedule role assignment for the guild.
+      // Synchronize the database tables.
       await Ambassadors.sync();
-      const guild = await client.guilds.fetch(guildId);
-      scheduleTaskFromDate(epochStart, EPOCH_IN_SECONDS, assignRoles, guild);
-
-      // Synchronize Messages and schedule point updates.
       await Messages.sync();
-      updatePoints(MSG_SYNC_TIME_IN_SECS, client);
-
-      // Synchronize the remaining tables.
       await TopPoints.sync();
       await Tweets.sync();
       await EpochPoints.sync();
       await States.sync({alter: true});
+
+      // Schedule role assignment for the guild.
+      const guild = await client.guilds.fetch(guildId);
+      scheduleTaskFromDate(epochStart, EPOCH_IN_SECONDS, assignRoles, guild);
+
+      // Synchronize Messages and schedule point updates.
+      
+      updatePoints(MSG_SYNC_TIME_IN_SECS, client);
+
+      // Synchronize the remaining tables.
+      
       await States.upsert({ id: DEFAULT_STATE_INDEX, startupTime: new Date()}, { id: DEFAULT_STATE_INDEX });
 
       // Schedule baseline point assignment and epoch winner determination.
@@ -48,7 +52,7 @@ module.exports = {
       console.log(`Ready! Logged in as ${client.user.tag}`);
       await logToDiscord(`✅ Bot is ready! Logged in as ${client.user.tag}`, client);
     } catch (error) {
-      console.error('❗ Error in ready event:', error);
+      console.error('❗ Error in ready event:', error.message);
       await logToDiscord(`❗ Error in ClientReady event: ${error.message}`, client);
     }
   },

@@ -63,12 +63,12 @@ client.on('invalidRequestWarning', (info) => {
 
 // eslint-disable-next-line
 process.on("unhandledRejection", (reason, promise) => {
-    console.error("Unhandled Rejection at:", promise, "reason:", reason);
+    // console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 // eslint-disable-next-line
 process.on("uncaughtException", (error) => {
-    console.error("Uncaught Exception:", error);
+    // console.error("Uncaught Exception:", error);
 });
 
 
