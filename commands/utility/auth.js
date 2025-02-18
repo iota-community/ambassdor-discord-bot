@@ -19,55 +19,41 @@ module.exports = {
       const url = authLink.url;
       const token = authLink.oauth_token;
       const secret = authLink.oauth_token_secret;
-      Ambassadors.findOne({ where: { id: interaction.user.id } }).then(
-        async (ambassador) => {
-          if (ambassador) {
-            // return if X id is already linked.
-            if (ambassador.x_user_id) {
-              return interaction.editReply(
-                `Your X Id is already linked, contact admin.`
-              );
-            }
-            Ambassadors.update(
-              { oauth_token: token, oauth_token_secret: secret },
-              { where: { id: ambassador.id } }
-            ).then((affectedRows) => {
-              if (affectedRows > 0) {
-                return interaction.editReply({
-                  content: `Visit the provided URL to link your X account\n  ${url}.`,
-                  ephemeral: true,
-                });
-              } else {
-                return interaction.editReply(
-                  `An error occured linking your X Id, please contact admin`
-                );
-              }
-            });
-          } else {
-            try {
-              Ambassadors.create({
-                id: interaction.user.id,
-                displayName: interaction.user.displayName,
-                oauth_token: token,
-                oauth_token_secret: secret,
-              }).then(() => {
-                return interaction.editReply({
-                  content: `Visit the provided URL to link your X account\n  ${url}.`,
-                  ephemeral: true,
-                });
-              });
-            } catch (error) {
-              console.log(`Error ${error} occured creating ambassador account`);
-              return interaction.editReply({
-                content: `Failed to create ambassador account try again later.`,
-                ephemeral: true,
-              });
-            }
-          }
+      const ambassador = await Ambassadors.findOne({ where: { id: interaction.user.id } });
+      if (ambassador) {
+        if (!ambassador.x_user_id) {
+          return interaction.editReply(
+            `Your Discord account (${interaction.user.id}) already linked. Please proceed with the command /authpin for linking with X account.`
+          );
+        } else {
+          return interaction.editReply(
+            `Your Discord and X accounts already linked. To unlink account, use the command /unlink.`
+          );
         }
-      );
+      } else {
+        try {
+          await Ambassadors.create({
+            id: interaction.user.id,
+            displayName: interaction.user.displayName,
+            oauth_token: token,
+            oauth_token_secret: secret,
+          });
+
+          return interaction.editReply({
+            content: `Visit the provided URL to link your X account\n  ${url}.`,
+            ephemeral: true,
+          });
+        } catch (error) {
+          console.log(`Error ${error.message} occured creating ambassador account`);
+
+          return interaction.editReply({
+            content: `Failed to create ambassador account. Try again later!`,
+            ephemeral: true,
+          });
+        }
+      }
     } catch (error) {
-			console.error('❗ Error in auth cmd:', error);
+			console.error('❗ Error in auth cmd:', error.message);
 		}
   },
 };
