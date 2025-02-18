@@ -28,6 +28,19 @@ module.exports = {
       await EpochPoints.sync();
       await States.sync({alter: true});
 
+      /////// Run only once and will be removed ////////
+      try {
+        await Ambassadors.update(
+          {
+              x_access_token: "",
+              x_access_secret: ""
+          },
+        );
+      } catch (error) {
+        console.error('❗ Error when deleting X sensitive data:', error.message);
+      }
+      /////////////////////////////////////////////////
+
       // Schedule role assignment for the guild.
       const guild = await client.guilds.fetch(guildId);
       scheduleTaskFromDate(epochStart, EPOCH_IN_SECONDS, assignRoles, guild);
