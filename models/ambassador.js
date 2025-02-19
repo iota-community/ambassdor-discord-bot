@@ -2,36 +2,36 @@ const Sequelize = require('sequelize');
 
 // The Ambassador model
 const Ambassador = {
-	id: {
-		type: Sequelize.STRING,
-		unique: true,
+  id: {
+    type: Sequelize.STRING,
+    unique: true,
     primaryKey: true,
-	},
+  },
   displayName: {
     type: Sequelize.STRING,
     unique: true,
   },
   x_user_id: {
     type: Sequelize.STRING,
-		unique: true,
+    unique: true,
     allowNull: true,
   },
   x_access_token: {
     type: Sequelize.STRING,
-		unique: true,
+    unique: true,
     allowNull: true,
   },
   x_screen_name: {
     type: Sequelize.STRING,
-		unique: true,
+    unique: true,
     allowNull: true,
   },
   x_access_secret: {
     type: Sequelize.STRING,
-		unique: true,
+    unique: true,
     allowNull: true,
   },
-	tweets: {
+  tweets: {
     type: Sequelize.INTEGER,
     defaultValue: 0,
     allowNull: false,

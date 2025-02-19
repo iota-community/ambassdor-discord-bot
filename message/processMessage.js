@@ -1,18 +1,27 @@
-const { fetchTweet, extractTweetId, has72HoursPassed, logToDiscord, calculatePoints } = require("../helpers/helpers");
-const { Ambassadors, Messages, Tweets } = require("../models/database");
+const {
+  fetchTweet,
+  extractTweetId,
+  has72HoursPassed,
+  logToDiscord,
+  calculatePoints,
+} = require('../helpers/helpers');
+const { Ambassadors, Messages, Tweets } = require('../models/database');
 
 async function processMessage(job) {
   try {
     if (!job || !job.message) {
-        console.error("Error: message or message.content is undefined", job);
-        return;
+      console.error('Error: message or message.content is undefined', job);
+      return;
     }
 
     const message = job.message;
-    
+
     let tweetId = extractTweetId(message.content);
     if (!tweetId) {
-      await logToDiscord(`⚠️ Unable to extract tweet ID for message: ${message.content}`, message.client);
+      await logToDiscord(
+        `⚠️ Unable to extract tweet ID for message: ${message.content}`,
+        message.client,
+      );
       return message.reply(`Unable to extract tweet ID.`);
     }
 
@@ -24,7 +33,7 @@ async function processMessage(job) {
 
     tweetId = tweet.id;
 
-    if (!tweet.hashtags.includes("IOTAambassador")) {
+    if (!tweet.hashtags.includes('IOTAambassador')) {
       return message.reply(`Tweet does not contain #IOTAambassador hashtag`);
     }
 
@@ -33,26 +42,37 @@ async function processMessage(job) {
     }
 
     if (has72HoursPassed(tweet.timestamp)) {
-      return message.reply(`72 hours have passed since the post was made on X.`);
+      return message.reply(
+        `72 hours have passed since the post was made on X.`,
+      );
     }
 
     const dupTweet = await Tweets.findOne({ where: { id: tweetId } });
     if (dupTweet) {
-      await logToDiscord(`⚠️ Duplicate tweet detected: ${tweetId} already exists.`, message.client);
+      await logToDiscord(
+        `⚠️ Duplicate tweet detected: ${tweetId} already exists.`,
+        message.client,
+      );
       return message.reply(`Duplicate tweet detected.`);
     }
 
-    const ambassador = await Ambassadors.findOne({ where: { id: message.author.id } });
+    const ambassador = await Ambassadors.findOne({
+      where: { id: message.author.id },
+    });
     if (!ambassador) {
-      return message.reply(`You have not linked your X ID. Use /linkx command to link your account.`);
+      return message.reply(
+        `You have not linked your X ID. Use /linkx command to link your account.`,
+      );
     }
 
     if (tweet.userId !== ambassador.x_user_id) {
-      return message.reply(`X ID of the user who made the post doesn't match the linked X ID.`);
+      return message.reply(
+        `X ID of the user who made the post doesn't match the linked X ID.`,
+      );
     }
 
     // let points = 20; // why 20 (bullshit)
-    
+
     // Get tweet metrics and check for possibe null values.
     // If value is null, set value to 0.
     const likes = tweet.likes || 0;
@@ -85,13 +105,16 @@ async function processMessage(job) {
       channelId: message.channelId,
     });
 
-    await logToDiscord(`✅ Tweet ${tweetId} successfully stored for ${message.author.username}.`, message.client);
+    await logToDiscord(
+      `✅ Tweet ${tweetId} successfully stored for ${message.author.username}.`,
+      message.client,
+    );
 
     return message.reply(
-      `🤍 ${likes}   🔃 ${retweets}   💬 ${replies}   📊 ${views}\n${points} points initially calculated for ${message.author.displayName}. Final credit, based on engagement, after 24 hours.`
+      `🤍 ${likes}   🔃 ${retweets}   💬 ${replies}   📊 ${views}\n${points} points initially calculated for ${message.author.displayName}. Final credit, based on engagement, after 24 hours.`,
     );
   } catch (error) {
-    console.error("❗ Error processing message:", error?.message);
+    console.error('❗ Error processing message:', error?.message);
   }
 }
 

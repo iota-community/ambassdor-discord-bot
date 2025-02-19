@@ -1,10 +1,13 @@
-const { Events } = require("discord.js");
-const queuePromise = require("../message/queue"); // Import the promise
+const { Events } = require('discord.js');
+const queuePromise = require('../message/queue'); // Import the promise
 
 module.exports = {
   name: Events.MessageCreate,
   async execute(message) {
-    if (!message.content.includes("x.com") && !message.content.includes("twitter.com")) {
+    if (
+      !message.content.includes('x.com') &&
+      !message.content.includes('twitter.com')
+    ) {
       return;
     }
     const { addJob } = await queuePromise; // Wait for queue setup

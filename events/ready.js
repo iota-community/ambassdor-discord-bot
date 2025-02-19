@@ -1,17 +1,24 @@
 const { Events } = require('discord.js');
-const { Ambassadors, Messages, TopPoints, Tweets, EpochPoints, States } = require('../models/database.js');
-const { epochStart, guildId } = require("../config.json");
-const { 
-  assignRoles, 
-  scheduleTaskFromDate, 
+const {
+  Ambassadors,
+  Messages,
+  TopPoints,
+  Tweets,
+  EpochPoints,
+  States,
+} = require('../models/database.js');
+const { epochStart, guildId } = require('../config.json');
+const {
+  assignRoles,
+  scheduleTaskFromDate,
   updatePoints,
   assignBaseLinePoints,
   // determineEpochWinner,
-  EPOCH_IN_SECONDS, 
-  BASELINE_POINT_AWARD_MILLIS, 
+  EPOCH_IN_SECONDS,
+  BASELINE_POINT_AWARD_MILLIS,
   DEFAULT_STATE_INDEX,
-  logToDiscord
-} = require("../helpers/helpers.js");
+  logToDiscord,
+} = require('../helpers/helpers.js');
 
 module.exports = {
   name: Events.ClientReady,
@@ -24,18 +31,19 @@ module.exports = {
       await TopPoints.sync();
       await Tweets.sync();
       await EpochPoints.sync();
-      await States.sync({alter: true});
+      await States.sync({ alter: true });
 
       /////// Run only once and will be removed ////////
       try {
-        await Ambassadors.update(
-          {
-              x_access_token: "",
-              x_access_secret: ""
-          },
-        );
+        await Ambassadors.update({
+          x_access_token: '',
+          x_access_secret: '',
+        });
       } catch (error) {
-        console.error('❗ Error when deleting X sensitive data:', error.message);
+        console.error(
+          '❗ Error when deleting X sensitive data:',
+          error.message,
+        );
       }
       /////////////////////////////////////////////////
 
@@ -51,7 +59,10 @@ module.exports = {
       updatePoints(30, client);
 
       // Synchronize the remaining tables.
-      await States.upsert({ id: DEFAULT_STATE_INDEX, startupTime: new Date()}, { id: DEFAULT_STATE_INDEX });
+      await States.upsert(
+        { id: DEFAULT_STATE_INDEX, startupTime: new Date() },
+        { id: DEFAULT_STATE_INDEX },
+      );
 
       // Schedule baseline point assignment and epoch winner determination.
       setInterval(() => {
@@ -64,10 +75,16 @@ module.exports = {
       // }, EPOCH_IN_SECONDS * 1000);
 
       console.log(`Ready! Logged in as ${client.user.tag}`);
-      await logToDiscord(`✅ Bot is ready! Logged in as ${client.user.tag}`, client);
+      await logToDiscord(
+        `✅ Bot is ready! Logged in as ${client.user.tag}`,
+        client,
+      );
     } catch (error) {
       console.error('❗ Error in ready event:', error.message);
-      await logToDiscord(`❗ Error in ClientReady event: ${error.message}`, client);
+      await logToDiscord(
+        `❗ Error in ClientReady event: ${error.message}`,
+        client,
+      );
     }
   },
 };

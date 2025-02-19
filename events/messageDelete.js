@@ -1,6 +1,6 @@
-const { Events } = require("discord.js");
-const { Messages, Tweets } = require("../models/database.js");
-const {logToDiscord} = require("../helpers/helpers.js")
+const { Events } = require('discord.js');
+const { Messages, Tweets } = require('../models/database.js');
+const { logToDiscord } = require('../helpers/helpers.js');
 
 module.exports = {
   name: Events.MessageDelete,
@@ -11,19 +11,21 @@ module.exports = {
         try {
           await message.fetch();
         } catch (error) {
-          console.error("Error fetching message:", error);
+          console.error('Error fetching message:', error);
           return;
         }
       }
 
       // Delete the message from the database
       await Messages.destroy({ where: { id: message.id } });
-      await Tweets.destroy({ where: { messageId: message.id } })
+      await Tweets.destroy({ where: { messageId: message.id } });
 
-      await logToDiscord(`Message (${message.id}) and its Tweet deleted`, message.client);
-      
+      await logToDiscord(
+        `Message (${message.id}) and its Tweet deleted`,
+        message.client,
+      );
     } catch (err) {
-      console.error("Error processing deleted message:", err);
+      console.error('Error processing deleted message:', err);
     }
   },
 };

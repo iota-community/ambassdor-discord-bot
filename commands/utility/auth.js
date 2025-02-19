@@ -1,13 +1,15 @@
-const { SlashCommandBuilder } = require("discord.js");
-const { Ambassadors } = require("../../models/database.js");
-const { TwitterApi } = require("twitter-api-v2");
-const {twitter_api_key, twitter_api_key_secret} = require('../../config.json');
-
+const { SlashCommandBuilder } = require('discord.js');
+const { Ambassadors } = require('../../models/database.js');
+const { TwitterApi } = require('twitter-api-v2');
+const {
+  twitter_api_key,
+  twitter_api_key_secret,
+} = require('../../config.json');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("link")
-    .setDescription("Link your X account"),
+    .setName('link')
+    .setDescription('Link your X account'),
   async execute(interaction) {
     try {
       await interaction.deferReply({ ephemeral: true });
@@ -19,15 +21,17 @@ module.exports = {
       const url = authLink.url;
       const token = authLink.oauth_token;
       const secret = authLink.oauth_token_secret;
-      const ambassador = await Ambassadors.findOne({ where: { id: interaction.user.id } });
+      const ambassador = await Ambassadors.findOne({
+        where: { id: interaction.user.id },
+      });
       if (ambassador) {
         if (!ambassador.x_user_id) {
           return interaction.editReply(
-            `Your Discord account (${interaction.user.id}) already linked. Please proceed with the command /authpin for linking with X account.`
+            `Your Discord account (${interaction.user.id}) already linked. Please proceed with the command /authpin for linking with X account.`,
           );
         } else {
           return interaction.editReply(
-            `Your Discord and X accounts already linked. To unlink account, use the command /unlink.`
+            `Your Discord and X accounts already linked. To unlink account, use the command /unlink.`,
           );
         }
       } else {
@@ -44,7 +48,9 @@ module.exports = {
             ephemeral: true,
           });
         } catch (error) {
-          console.log(`Error ${error.message} occured creating ambassador account`);
+          console.log(
+            `Error ${error.message} occured creating ambassador account`,
+          );
 
           return interaction.editReply({
             content: `Failed to create ambassador account. Try again later!`,
@@ -53,7 +59,7 @@ module.exports = {
         }
       }
     } catch (error) {
-			console.error('❗ Error in auth cmd:', error.message);
-		}
+      console.error('❗ Error in auth cmd:', error.message);
+    }
   },
 };
