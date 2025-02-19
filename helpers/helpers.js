@@ -62,7 +62,7 @@ async function logToDiscord(message, client) {
       console.error("Log channel not found.");
     }
   } catch (error) {
-    console.error("Failed to log to Discord:", error);
+    console.error("Failed to log to Discord:", error.message);
   }
 }
 
@@ -329,25 +329,12 @@ function updatePoints(intervalInSeconds, client) {
 }
 
 // Add points to an ambassador based on a message.
-async function addPoints(client, msg) {
+async function addPoints(client, msg, curMsgToReply) {
   try {
-    // Confirm that message is still valid on the channel before awarding points.
-    const channel = await client.channels.fetch(msg.channelId);
-    const curMsg = await channel.messages.fetch(msg.id);
-    // Message is no longer valid. Delete message and return.
-    if (!curMsg) {
-      await Messages.destroy({ where: { id: msg.id } });
-      await logToDiscord(
-        `Error couldn't assign point for message ${msg.id} because message is no longer valid (or deleted)`,
-        client
-      );
-      console.log(`Error couldn't assign point for message ${msg.id} because message is no longer valid (or deleted)`);
-      return;
-    }
-
     const ambassador = await Ambassadors.findOne({
       where: { id: msg.authorId },
     });
+
     if (ambassador) {
       // Re-calc Tweet points according its latest status
       const tweetId = msg.tweetId;
@@ -366,35 +353,38 @@ async function addPoints(client, msg) {
       const replies = tweet.replies || 0;
       const views = tweet.views || 0;
 
-      const latestPoints = calculatePoints({
+      const msgLatestPoints = calculatePoints({
         likeCount: likes,
         retweetCount: retweets,
         replyCount: replies,
         impressionCount: views,
       });
 
-      msg.points = latestPoints;
       ///////////////////
 
       const prevPoints = ambassador.points || 0;
       const prevTweets = ambassador.tweets || 0;
       await Ambassadors.update(
-        { points: prevPoints + msg.points, tweets: prevTweets + 1 },
+        { points: prevPoints + msgLatestPoints, tweets: prevTweets + 1 },
         { where: { id: ambassador.id } }
       );
+      
+      await Messages.destroy({ where: { id: msg.id } });
+
+      // TODO
       try {
         let ambassadorPoint = await EpochPoints.findOne({
           where: { id: ambassador.id },
         });
         if (ambassadorPoint) {
           await EpochPoints.update(
-            { points: ambassadorPoint.points + msg.points },
+            { points: ambassadorPoint.points + msgLatestPoints },
             { where: { id: ambassadorPoint.id } }
           );
         } else {
           await EpochPoints.create({
             id: ambassador.id,
-            points: msg.points,
+            points: msgLatestPoints,
             channelId: msg.channelId,
           });
         }
@@ -405,7 +395,7 @@ async function addPoints(client, msg) {
           client
         );
       }
-      await Messages.destroy({ where: { id: msg.id } });
+      
       const topPts = await TopPoints.findAll({
         order: Sequelize.literal("points DESC"),
       });
@@ -427,7 +417,7 @@ async function addPoints(client, msg) {
         await TopPoints.create({
           id: msg.id,
           authorId: msg.authorId,
-          points: msg.points,
+          points: msgLatestPoints,
           channelId: msg.channelId,
         });
       } catch (err) {
@@ -438,17 +428,10 @@ async function addPoints(client, msg) {
         );
       }
       // Send reply about the status of msg.
-      try {
-        await curMsg.reply(
-          `${msg.points} Points added to ${ambassador.displayName} for this post.`
-        );
-      } catch (err) {
-        console.error("Error responding to the message regarding added points", err);
-        await logToDiscord(
-          `Error responding to the message ${msg.id} regarding added points: ${err.message}`,
-          client
-        );
-      }
+      await curMsgToReply.reply(
+        `${msgLatestPoints} Points added to ${ambassador.displayName} for this post.`
+      );
+      
     }
   } catch (error) {
     console.error("Error in addPoints:", error);
@@ -475,9 +458,12 @@ async function fetchPoints(client) {
       try {
         const chan = await client.channels.fetch(msg.channelId);
         if (chan) {
-          const curMsg = await chan.messages.fetch(msg.id);
-          if (curMsg) {
-            await addPoints(client, msg);
+          const curMsgToReply = await chan.messages.fetch(msg.id);
+          if (curMsgToReply) {
+            await addPoints(client, msg, curMsgToReply);
+          } else {
+            // If msg no longer exists in channel (user has deleted it)
+            await Messages.destroy({ where: { id: msg.id } });
           }
         }
       } catch (err) {

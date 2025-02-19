@@ -6,7 +6,7 @@ const {
   scheduleTaskFromDate, 
   updatePoints,
   assignBaseLinePoints,
-  determineEpochWinner,
+  // determineEpochWinner,
   EPOCH_IN_SECONDS, 
   BASELINE_POINT_AWARD_MILLIS, 
   DEFAULT_STATE_INDEX,
@@ -46,7 +46,8 @@ module.exports = {
 
       // Every 30s, check to update points for the "ambassadors" table
       // based on the "messages" table for any messages older than 24 hours.
-      // Mean that, the Ambassador points will actually be updated every 24 hours.
+      // Mean that, the Ambassador points will actually be updated every 24 hours
+      // and the corresponding message record will be deleted.
       updatePoints(30, client);
 
       // Synchronize the remaining tables.
@@ -57,9 +58,10 @@ module.exports = {
         assignBaseLinePoints(client);
       }, BASELINE_POINT_AWARD_MILLIS);
 
-      setInterval(() => {
-        determineEpochWinner(client);
-      }, EPOCH_IN_SECONDS * 1000);
+      // TODO
+      // setInterval(() => {
+      //   determineEpochWinner(client);
+      // }, EPOCH_IN_SECONDS * 1000);
 
       console.log(`Ready! Logged in as ${client.user.tag}`);
       await logToDiscord(`✅ Bot is ready! Logged in as ${client.user.tag}`, client);
