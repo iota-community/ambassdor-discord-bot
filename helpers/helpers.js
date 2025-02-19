@@ -31,7 +31,7 @@ const EXPERT_ROLE = "Visionary";
 
 const EPOCH_IN_SECONDS = 72 * 60 * 60;
 const BASELINE_POINT_AWARD_MILLIS = 86400000; // Every 24 hours
-const TWENTY_FOUR_HOURS_IN_MILLIS = 60*1000//24 * 60 * 60 * 1000;
+const TWENTY_FOUR_HOURS_IN_MILLIS = 24 * 60 * 60 * 1000;
 const BASELINE_POINT = 20;
 const SEVENTY_TWO_HOURS_IN_MILLIS = 72 * 60 * 60 * 1000;
 const DEFAULT_STATE_INDEX = 1;
@@ -116,13 +116,8 @@ async function assignAmbassadorRole(guild, ambassador, roleName) {
       return;
     }
     await member.roles.add(role);
-    console.log(`User ${ambassador.displayName} assigned role ${role.name}`);
-    await logToDiscord(
-      `User ${ambassador.displayName} assigned role ${role.name}`,
-      guild.client
-    );
   } catch (error) {
-    console.error("Error assigning role:", error);
+    console.error("Error assigning role:", error.message);
     await logToDiscord(
       `Error assigning role to ${ambassador.displayName}: ${error.message}`,
       guild.client
@@ -137,15 +132,10 @@ async function unassignRole(guild, ambassador) {
     for (const role of member.roles.cache.values()) {
       if (knownRole(role)) {
         await member.roles.remove(role, "Unassign role");
-        console.log(`Removed role ${role.name} from ${ambassador.displayName}`);
-        await logToDiscord(
-          `Removed role ${role.name} from ${ambassador.displayName}`,
-          guild.client
-        );
       }
     }
   } catch (error) {
-    console.error("Error unassigning role:", error);
+    console.error("Error unassigning role:", error.message);
     await logToDiscord(
       `Error unassigning role for ${ambassador.displayName}: ${error.message}`,
       guild.client
@@ -153,10 +143,8 @@ async function unassignRole(guild, ambassador) {
   }
 }
 
-async function assignRoles(guild) {
+async function congratsTop3(guild) {
   try {
-    const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
-    let currentEpoch = state.epoch ?? 0;
     let chan = null;
 
     // Fetch top 3 ambassadors by points
@@ -165,7 +153,7 @@ async function assignRoles(guild) {
       limit: 3, // Only fetch the top 3 ambassadors
     });
 
-    let congratulatoryHeader = `🎉 Congratulations`;
+    let congratulatoryHeader = `🎉 Top 3 Congratulations`;
     let congratulatoryMsg = "";
     let congratulatoryEmoji = ["🏆", "🏅", "🎖️"];
 
@@ -191,22 +179,25 @@ async function assignRoles(guild) {
       }
     }
 
-    if (congratulatoryMsg) {
-      congratulatoryHeader += currentEpoch
-        ? `\n You scored highest in Epoch ${currentEpoch}`
-        : `\n You scored highest in this Epoch`;
+    await chan.send(congratulatoryHeader + `\n` + congratulatoryMsg);
+  } catch (error) {
+    console.error("Error in congratsTop3:", error.message);
+    await logToDiscord(`Error in congratsTop3: ${error.message}`, guild.client);
+  }
+}
 
-      congratulatoryMsg = `\n${congratulatoryMsg}\n Keep up the great work!`;
-
-      await chan.send(congratulatoryHeader + congratulatoryMsg);
-    }
+async function assignRoles(guild) {
+  try {
+    const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
+    let currentEpoch = state.epoch ?? 0;
+    
+    await congratsTop3(guild);
 
     // Process Ambassadors in Batches
     const BATCH_SIZE = 50;
     let offset = 0;
-    let hasMore = true;
 
-    while (hasMore) {
+    while (true) {
       const ambassadors = await Ambassadors.findAll({
         attributes: ["id", "points", "displayName"],
         limit: BATCH_SIZE,
@@ -214,47 +205,35 @@ async function assignRoles(guild) {
       });
 
       if (ambassadors.length === 0) {
-        hasMore = false;
         break;
       }
 
       for (const ambassador of ambassadors) {
-        await unassignRole(guild, ambassador);
+        // For every 72 hours counted from the epoch start, Ambassador points will be decayed accordingly
         let currentPoints = epochDecay(Number(ambassador.points || 0));
 
-        // Update points in DB
-        const [affectedRows] = await Ambassadors.update(
+        await Ambassadors.update(
           { points: currentPoints },
           { where: { id: ambassador.id } }
         );
 
-        if (affectedRows > 0) {
-          console.log(`User ${ambassador.displayName} points updated to ${currentPoints}`);
-          await logToDiscord(
-            `User ${ambassador.displayName} points updated to ${currentPoints}`,
-            guild.client
-          );
-        } else {
-          console.log(`User ${ambassador.displayName} failed to update points`);
-          await logToDiscord(
-            `User ${ambassador.displayName} failed to update points`,
-            guild.client
-          );
-        }
-
         // Assign appropriate role based on points
-        let role;
-        if (currentPoints <= NOVICE_MAX) role = NOVICE_ROLE;
-        else if (currentPoints >= INTERMEDIATE_MIN && currentPoints <= INTERMEDIATE_MAX) role = INTERMEDIATE_ROLE;
-        else if (currentPoints >= ADVANCED_MIN && currentPoints <= ADVANCED_MAX) role = ADVANCED_ROLE;
-        else if (currentPoints >= EXPERT_MIN) role = EXPERT_ROLE;
-
-        if (role) {
-          await assignAmbassadorRole(guild, ambassador, role);
-        } else {
-          console.log(`No matching role for ${ambassador.displayName}`);
-          await logToDiscord(`No matching role for ${ambassador.displayName}`, guild.client);
+        let role = NOVICE_ROLE;
+        if (currentPoints <= NOVICE_MAX) {
+          role = NOVICE_ROLE;
         }
+        else if (currentPoints >= INTERMEDIATE_MIN && currentPoints <= INTERMEDIATE_MAX) {
+          role = INTERMEDIATE_ROLE;
+        }
+        else if (currentPoints >= ADVANCED_MIN && currentPoints <= ADVANCED_MAX) {
+          role = ADVANCED_ROLE;
+        }
+        else if (currentPoints >= EXPERT_MIN) {
+          role = EXPERT_ROLE;
+        }
+
+        await unassignRole(guild, ambassador);
+        await assignAmbassadorRole(guild, ambassador, role);
       }
 
       offset += BATCH_SIZE;
@@ -480,28 +459,33 @@ async function addPoints(client, msg) {
 // Fetch messages that are eligible for point updates.
 async function fetchPoints(client) {
   try {
+    // Find messages that are older than 24 hours
     const messages = await Messages.findAll({
       attributes: ["id", "channelId", "createdTimestamp", "authorId", "points"],
+      where: {
+        createdTimestamp: { 
+          [Op.lt]: Date.now() - TWENTY_FOUR_HOURS_IN_MILLIS 
+        },
+      },
     });
+
     if (!messages || messages.length < 1) return;
+    
     for (const msg of messages) {
-      const currentTime = Date.now();
-      if (currentTime > msg.createdTimestamp + TWENTY_FOUR_HOURS_IN_MILLIS) {
-        try {
-          const chan = await client.channels.fetch(msg.channelId);
-          if (chan) {
-            const curMsg = await chan.messages.fetch(msg.id);
-            if (curMsg) {
-              await addPoints(client, msg);
-            }
+      try {
+        const chan = await client.channels.fetch(msg.channelId);
+        if (chan) {
+          const curMsg = await chan.messages.fetch(msg.id);
+          if (curMsg) {
+            await addPoints(client, msg);
           }
-        } catch (err) {
-          console.error("Error fetching message in fetchPoints:", err);
-          await logToDiscord(
-            `Error fetching message in fetchPoints for message ${msg.id}: ${err.message}`,
-            client
-          );
         }
+      } catch (err) {
+        console.error("Error fetching message in fetchPoints:", err);
+        await logToDiscord(
+          `Error fetching message in fetchPoints for message ${msg.id}: ${err.message}`,
+          client
+        );
       }
     }
   } catch (error) {

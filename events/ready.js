@@ -4,16 +4,14 @@ const { epochStart, guildId } = require("../config.json");
 const { 
   assignRoles, 
   scheduleTaskFromDate, 
-  updatePoints, 
-  assignBaseLinePoints, 
+  updatePoints,
+  assignBaseLinePoints,
   determineEpochWinner,
   EPOCH_IN_SECONDS, 
   BASELINE_POINT_AWARD_MILLIS, 
   DEFAULT_STATE_INDEX,
   logToDiscord
 } = require("../helpers/helpers.js");
-
-const MSG_SYNC_TIME_IN_SECS = 10;
 
 module.exports = {
   name: Events.ClientReady,
@@ -41,16 +39,17 @@ module.exports = {
       }
       /////////////////////////////////////////////////
 
-      // Schedule role assignment for the guild.
+      // For every 72 hours counted from the epoch start, assign roles to ambassadors
+      // and also inform top 3 ambassadors of the epoch.
       const guild = await client.guilds.fetch(guildId);
       scheduleTaskFromDate(epochStart, EPOCH_IN_SECONDS, assignRoles, guild);
 
-      // Synchronize Messages and schedule point updates.
-      
-      updatePoints(MSG_SYNC_TIME_IN_SECS, client);
+      // Every 30s, check to update points for the "ambassadors" table
+      // based on the "messages" table for any messages older than 24 hours.
+      // Mean that, the Ambassador points will actually be updated every 24 hours.
+      updatePoints(30, client);
 
       // Synchronize the remaining tables.
-      
       await States.upsert({ id: DEFAULT_STATE_INDEX, startupTime: new Date()}, { id: DEFAULT_STATE_INDEX });
 
       // Schedule baseline point assignment and epoch winner determination.
