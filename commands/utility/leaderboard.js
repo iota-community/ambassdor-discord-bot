@@ -58,11 +58,13 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
         .setTitle('The Ambassadors Leaderboard')
-        .setDescription('Here are the top ambassadors by points')
+        .setDescription(
+          `Your current points: ${displayPointsWith2Decimals(currUser.points)}.\nHere are the top ambassadors by points`,
+        )
         .addFields(fields)
         .setTimestamp()
         .setFooter({
-          text: `Your current points: ${displayPointsWith2Decimals(currUser.points)}`,
+          text: 'Leaderboard',
         });
 
       await interaction.editReply({ embeds: [embed] });
