@@ -27,7 +27,7 @@ module.exports = {
   async execute(client) {
     try {
       // Synchronize the database tables.
-      await Ambassadors.sync();
+      await Ambassadors.sync({ alter: true });
       await Messages.sync();
       await TopPoints.sync();
       await Tweets.sync();
