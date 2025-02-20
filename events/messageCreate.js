@@ -5,14 +5,14 @@ module.exports = {
   name: Events.MessageCreate,
   async execute(message) {
     // Ensure we can fetch the full message if it's partial
-    // if (message.partial) {
-    //   try {
-    //     await message.fetch();
-    //   } catch (error) {
-    //     console.error('Error fetching message:', error);
-    //     return;
-    //   }
-    // }
+    if (message.partial) {
+      try {
+        await message.fetch();
+      } catch (error) {
+        console.error('Error fetching message:', error);
+        return;
+      }
+    }
 
     if (
       !message.content.includes('x.com') &&
