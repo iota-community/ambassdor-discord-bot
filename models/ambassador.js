@@ -16,19 +16,9 @@ const Ambassador = {
     unique: true,
     allowNull: true,
   },
-  x_access_token: {
-    type: Sequelize.STRING,
-    unique: false,
-    allowNull: true,
-  },
   x_screen_name: {
     type: Sequelize.STRING,
     unique: true,
-    allowNull: true,
-  },
-  x_access_secret: {
-    type: Sequelize.STRING,
-    unique: false,
     allowNull: true,
   },
   tweets: {

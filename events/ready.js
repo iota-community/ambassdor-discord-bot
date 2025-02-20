@@ -19,7 +19,6 @@ const {
   DEFAULT_STATE_INDEX,
   logToDiscord,
 } = require('../helpers/helpers.js');
-const { Op } = require('sequelize');
 
 module.exports = {
   name: Events.ClientReady,
@@ -33,23 +32,6 @@ module.exports = {
       await Tweets.sync();
       await EpochPoints.sync();
       await States.sync({ alter: true });
-
-      /////// Run only once and will be removed ////////
-      try {
-        await Ambassadors.update(
-          {
-            x_access_token: '',
-            x_access_secret: '',
-          },
-          { where: { points: { [Op.gte]: 0 } } },
-        );
-      } catch (error) {
-        console.error(
-          '❗ Error when deleting X sensitive data:',
-          error.message,
-        );
-      }
-      /////////////////////////////////////////////////
 
       // For every 72 hours counted from the epoch start, assign roles to ambassadors
       // and also inform top 3 ambassadors of the epoch.

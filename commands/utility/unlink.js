@@ -21,9 +21,7 @@ module.exports = {
             x_user_id: '',
             oauth_token: '',
             oauth_token_secret: '',
-            x_access_token: '',
             x_screen_name: '',
-            x_access_secret: '',
           },
           { where: { id: ambassador.id } },
         );
