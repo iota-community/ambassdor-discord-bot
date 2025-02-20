@@ -59,7 +59,7 @@ module.exports = {
         .setColor(0x0099ff)
         .setTitle('The Ambassadors Leaderboard')
         .setDescription(
-          `Your current points: ${displayPointsWith2Decimals(currUser.points)}.\nHere are the top ambassadors by points`,
+          `Your current points: ${displayPointsWith2Decimals(currUser.points)}\n\nHere are the top ambassadors by points`,
         )
         .addFields(fields)
         .setTimestamp()
