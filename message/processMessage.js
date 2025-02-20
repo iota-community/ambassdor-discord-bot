@@ -27,6 +27,7 @@ async function processMessage(job) {
     }
 
     const tweet = await fetchTweet(tweetId);
+    // Tweet deleted or not found
     if (!tweet) {
       await logToDiscord(`❌ Unable to fetch tweet ${tweetId}`, message.client);
       return message.reply(`Unable to fetch tweet.`);
