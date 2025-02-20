@@ -19,6 +19,7 @@ const {
   DEFAULT_STATE_INDEX,
   logToDiscord,
 } = require('../helpers/helpers.js');
+const { Op } = require('sequelize');
 
 module.exports = {
   name: Events.ClientReady,
