@@ -4,6 +4,7 @@ const {
   has72HoursPassed,
   logToDiscord,
   calculatePoints,
+  displayPointsWith2Decimals,
 } = require('../helpers/helpers');
 const { Ambassadors, Messages, Tweets } = require('../models/database');
 
@@ -111,7 +112,7 @@ async function processMessage(job) {
     );
 
     return message.reply(
-      `🤍 ${likes}   🔃 ${retweets}   💬 ${replies}   📊 ${views}\n${points} points initially calculated for ${message.author.displayName}. Final credit, based on engagement, after 24 hours.`,
+      `🤍 ${likes}   🔃 ${retweets}   💬 ${replies}   📊 ${views}\n${displayPointsWith2Decimals(points)} points initially calculated for ${message.author.displayName}. Final credit, based on engagement, after 24 hours.`,
     );
   } catch (error) {
     console.error('❗ Error processing message:', error?.message);
