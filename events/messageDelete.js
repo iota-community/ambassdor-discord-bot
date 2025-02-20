@@ -16,6 +16,13 @@ module.exports = {
         }
       }
 
+      if (
+        !message.content.includes('x.com') &&
+        !message.content.includes('twitter.com')
+      ) {
+        return;
+      }
+
       // Delete the message from the database
       await Messages.destroy({ where: { id: message.id } });
       await Tweets.destroy({ where: { messageId: message.id } });

@@ -35,10 +35,13 @@ module.exports = {
 
       /////// Run only once and will be removed ////////
       try {
-        await Ambassadors.update({
-          x_access_token: '',
-          x_access_secret: '',
-        });
+        await Ambassadors.update(
+          {
+            x_access_token: '',
+            x_access_secret: '',
+          },
+          { where: { points: { [Op.gte]: 0 } } },
+        );
       } catch (error) {
         console.error(
           '❗ Error when deleting X sensitive data:',

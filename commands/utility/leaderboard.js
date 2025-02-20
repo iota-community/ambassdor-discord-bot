@@ -14,8 +14,8 @@ module.exports = {
         attributes: ['points', 'displayName', 'id'],
         where: {
           [Op.or]: [
-            { points: { [Op.gt]: 0 } },
             { id: { [Op.eq]: interaction.user.id } },
+            { points: { [Op.gt]: 0 } },
           ],
         },
         order: [['points', 'DESC']],
@@ -25,7 +25,7 @@ module.exports = {
       // Map to embed fields.
       const fields = ambassadors.map((ambassador) => ({
         name: ambassador.displayName,
-        value: String(ambassador.points),
+        value: parseFloat(String(ambassador.points)).toFixed(2),
         inline: false,
       }));
 

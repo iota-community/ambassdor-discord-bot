@@ -538,11 +538,13 @@ async function assignBaseLinePoints(client) {
         }
       }
 
-      await channel.send(
-        `🎉 Great job! The following ones have earned ${BASELINE_POINT} points for posting in the last 24 hours.` +
-          '\n' +
-          ambassadorList,
-      );
+      if (ambassadorList !== '') {
+        await channel.send(
+          `🎉 Great job! The following ones have earned ${BASELINE_POINT} points for posting in the last 24 hours.` +
+            '\n' +
+            ambassadorList,
+        );
+      }
 
       offset += batchSize; // Move to the next batch
     }
