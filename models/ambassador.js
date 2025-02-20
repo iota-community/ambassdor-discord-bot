@@ -18,7 +18,7 @@ const Ambassador = {
   },
   x_access_token: {
     type: Sequelize.STRING,
-    unique: true,
+    unique: false,
     allowNull: true,
   },
   x_screen_name: {
@@ -28,7 +28,7 @@ const Ambassador = {
   },
   x_access_secret: {
     type: Sequelize.STRING,
-    unique: true,
+    unique: false,
     allowNull: true,
   },
   tweets: {

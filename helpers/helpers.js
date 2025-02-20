@@ -247,13 +247,11 @@ async function assignRoles(guild) {
     // Update epoch state
     let epochTime = state.nextEpochTime ?? Date.now();
     epochTime = epochTime + EPOCH_IN_SECONDS * 1000;
-    await States.upsert(
-      {
-        id: DEFAULT_STATE_INDEX,
-        epoch: currentEpoch + 1,
-        nextEpochTime: epochTime,
-      },
-    );
+    await States.upsert({
+      id: DEFAULT_STATE_INDEX,
+      epoch: currentEpoch + 1,
+      nextEpochTime: epochTime,
+    });
     // Clear the TopPoints table for the next epoch
     await TopPoints.truncate();
   } catch (error) {
@@ -316,9 +314,10 @@ function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
     timeUntilNextRun = -timeSinceStart;
   }
   try {
-    States.upsert(
-      { id: DEFAULT_STATE_INDEX, nextEpochTime: Date.now() + timeUntilNextRun },
-    );
+    States.upsert({
+      id: DEFAULT_STATE_INDEX,
+      nextEpochTime: Date.now() + timeUntilNextRun,
+    });
   } catch (err) {
     console.log(`Error udating next epoch time ${err}`);
   }
@@ -474,13 +473,8 @@ async function fetchPoints(client) {
             await Messages.destroy({ where: { id: msg.id } });
           }
         }
-      } catch (err) {
-        console.error('Error fetching message in fetchPoints:', err);
-        await logToDiscord(
-          `Error fetching message in fetchPoints for message ${msg.id}: ${err.message}`,
-          client,
-        );
-      }
+        // eslint-disable-next-line
+      } catch (err) {}
     }
   } catch (error) {
     console.error('Error in fetchPoints:', error);
@@ -513,10 +507,9 @@ async function assignBaseLinePoints(client) {
       }
 
       // Filter out the list to produce unique "author" values
-      const uniqueTweetList = tweetList.filter((value, index, self) => 
-        index === self.findIndex((t) => (
-          t.author === value.author
-        ))
+      const uniqueTweetList = tweetList.filter(
+        (value, index, self) =>
+          index === self.findIndex((t) => t.author === value.author),
       );
 
       let ambassadorList = '';
@@ -530,7 +523,7 @@ async function assignBaseLinePoints(client) {
           if (!curMsg) continue; // Skip if message is not found
 
           const ambassadorName = await addBaselinePoints(client, tweet);
-          if (ambassadorName !== '') {
+          if (ambassadorName) {
             ambassadorList += `<@${ambassadorName}> `;
           }
         } catch (err) {
@@ -546,15 +539,18 @@ async function assignBaseLinePoints(client) {
       }
 
       await channel.send(
-        `🎉 Great job! The following ones have earned ${BASELINE_POINT} points for posting in the last 24 hours.` + '\n' + ambassadorList
+        `🎉 Great job! The following ones have earned ${BASELINE_POINT} points for posting in the last 24 hours.` +
+          '\n' +
+          ambassadorList,
       );
 
       offset += batchSize; // Move to the next batch
     }
 
-    await States.upsert(
-      { id: DEFAULT_STATE_INDEX, baselinePointsTime: currDate },
-    );
+    await States.upsert({
+      id: DEFAULT_STATE_INDEX,
+      baselinePointsTime: currDate,
+    });
   } catch (error) {
     console.error('Error in assignBaseLinePoints:', error);
     await logToDiscord(
@@ -567,7 +563,9 @@ async function assignBaseLinePoints(client) {
 // Add baseline points to an ambassador.
 async function addBaselinePoints(client, tweet) {
   try {
-    const ambassador = await Ambassadors.findOne({ where: { id: tweet.author } });
+    const ambassador = await Ambassadors.findOne({
+      where: { id: tweet.author },
+    });
     if (ambassador) {
       const lastAwardTime = ambassador.lastBaseLinePointTime
         ? new Date(ambassador.lastBaseLinePointTime)
@@ -600,9 +598,10 @@ async function determineEpochWinner(client) {
     const nextEpoch =
       Date.now() + 1000 * EPOCH_IN_SECONDS * NUM_OF_EPOCHS_TO_WIN;
     if (!state.nextEpochRoundTime) {
-      await States.upsert(
-        { id: DEFAULT_STATE_INDEX, nextEpochRoundTime: nextEpoch },
-      );
+      await States.upsert({
+        id: DEFAULT_STATE_INDEX,
+        nextEpochRoundTime: nextEpoch,
+      });
     }
     if (new Date() > state.nextEpochRoundTime) return;
     const epochPoints = await EpochPoints.findAll({
@@ -632,17 +631,16 @@ async function determineEpochWinner(client) {
         .setTimestamp()
         .setFooter({ text: 'Epoch winner announcement' });
       await channel.send({ embeds: [embed] });
-      await States.upsert(
-        {
-          id: DEFAULT_STATE_INDEX,
-          epochWinner: epochWinner.id,
-          nextEpochRoundTime: nextEpoch,
-        },
-      );
+      await States.upsert({
+        id: DEFAULT_STATE_INDEX,
+        epochWinner: epochWinner.id,
+        nextEpochRoundTime: nextEpoch,
+      });
     } else {
-      await States.upsert(
-        { id: DEFAULT_STATE_INDEX, nextEpochRoundTime: nextEpoch },
-      );
+      await States.upsert({
+        id: DEFAULT_STATE_INDEX,
+        nextEpochRoundTime: nextEpoch,
+      });
     }
     // Clear epoch points for the next round.
     await EpochPoints.truncate();

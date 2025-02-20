@@ -59,9 +59,7 @@ module.exports = {
       updatePoints(30, client);
 
       // Synchronize the remaining tables.
-      await States.upsert(
-        { id: DEFAULT_STATE_INDEX, startupTime: new Date() },
-      );
+      await States.upsert({ id: DEFAULT_STATE_INDEX, startupTime: new Date() });
 
       // Run and then schedule baseline point assignment and epoch winner determination.
       await assignBaseLinePoints(client);
