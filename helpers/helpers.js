@@ -193,7 +193,8 @@ async function assignRoles(guild) {
     const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
     let currentEpoch = state.epoch ?? 0;
 
-    await congratsTop3(guild);
+    // TODO
+    // await congratsTop3(guild);
 
     // Process Ambassadors in Batches
     const BATCH_SIZE = 50;
