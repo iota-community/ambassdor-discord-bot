@@ -655,6 +655,15 @@ async function determineEpochWinner(client) {
   }
 }
 
+function displayPointsWith2Decimals(points) {
+  try {
+    return parseFloat(String(points)).toFixed(2);
+    // eslint-disable-next-line no-unused-vars
+  } catch (error) {
+    return points || 0;
+  }
+}
+
 module.exports = {
   has72HoursPassed,
   assignRoles,
@@ -670,4 +679,5 @@ module.exports = {
   BASELINE_POINT_AWARD_MILLIS,
   EPOCH_IN_SECONDS,
   DEFAULT_STATE_INDEX,
+  displayPointsWith2Decimals,
 };

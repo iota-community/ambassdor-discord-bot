@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { Ambassadors } = require('../../models/database.js');
-const { Op } = require('sequelize');
+const { displayPointsWith2Decimals } = require('../../helpers/helpers.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,12 +12,6 @@ module.exports = {
 
       const ambassadors = await Ambassadors.findAll({
         attributes: ['points', 'displayName', 'id'],
-        where: {
-          [Op.or]: [
-            { id: { [Op.eq]: interaction.user.id } },
-            { points: { [Op.gt]: 0 } },
-          ],
-        },
         order: [['points', 'DESC']],
         limit: 25,
       });
@@ -25,9 +19,15 @@ module.exports = {
       // Map to embed fields.
       const fields = ambassadors.map((ambassador) => ({
         name: ambassador.displayName,
-        value: parseFloat(String(ambassador.points)).toFixed(2),
+        value: displayPointsWith2Decimals(ambassador.points),
         inline: false,
       }));
+
+      // Find the current user
+      const currUser = await Ambassadors.findOne({
+        attributes: ['points', 'displayName', 'id'],
+        where: { id: interaction.user.id },
+      });
 
       // If adding more fields here to the embed, it will get crashed due to max of 25 fields
       // TODO: what is this for?
@@ -58,10 +58,12 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
         .setTitle('The Ambassadors Leaderboard')
-        .setDescription('Here are the top ambassadors by points:')
+        .setDescription('Here are the top ambassadors by points')
         .addFields(fields)
         .setTimestamp()
-        .setFooter({ text: 'Leaderboard' });
+        .setFooter({
+          text: `Your current points: ${displayPointsWith2Decimals(currUser.points)}`,
+        });
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
