@@ -13,7 +13,7 @@ module.exports = {
         return;
       }
     }
-    
+
     if (
       !message.content.includes('x.com') &&
       !message.content.includes('twitter.com')

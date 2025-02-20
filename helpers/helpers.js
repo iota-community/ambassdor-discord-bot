@@ -201,7 +201,7 @@ async function assignRoles(guild) {
 
     while (true) {
       const ambassadors = await Ambassadors.findAll({
-        attributes: ['id', 'points', 'displayName'],
+        // attributes: ['id', 'points', 'displayName'],
         limit: BATCH_SIZE,
         offset,
       });
@@ -267,7 +267,7 @@ async function fetchTweet(tweetId) {
     const tweet = await scraper.getTweet(tweetId);
     return tweet;
   } catch (error) {
-    console.error('Error fetching tweet:', error);
+    console.error(`Fetching tweet (${tweetId}) Error: ${error.message}`);
     return null;
   }
 }
@@ -451,7 +451,7 @@ async function fetchPoints(client) {
   try {
     // Find messages that are older than 24 hours
     const messages = await Messages.findAll({
-      attributes: ['id', 'channelId', 'createdTimestamp', 'authorId', 'points'],
+      // attributes: ['id', 'channelId', 'createdTimestamp', 'authorId', 'points'],
       where: {
         createdTimestamp: {
           [Op.lt]: Date.now() - TWENTY_FOUR_HOURS_IN_MILLIS,
