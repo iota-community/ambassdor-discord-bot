@@ -190,9 +190,7 @@ async function congratsTop3(guild) {
 
 async function getNextEpochTime() {
   const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
-  const res = Number(state.nextEpochTime);
-  console.log('getNextEpochTime:', res);
-  return res;
+  return Number(state.nextEpochTime);
 }
 
 async function assignRoles(guild) {
