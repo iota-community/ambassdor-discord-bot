@@ -69,6 +69,9 @@ module.exports = {
       }
     } catch (error) {
       console.error('❗ Error in authpin cmd:', error.message);
+      return interaction.editReply(
+        `An error occured linking your X Id (most probably due to wrong PIN).`,
+      );
     }
   },
 };
