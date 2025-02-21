@@ -190,7 +190,9 @@ async function congratsTop3(guild) {
 
 async function getNextEpochTime() {
   const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
-  return Number(state.nextEpochTime.toString());
+  const res = Number(state.nextEpochTime);
+  console.log('getNextEpochTime:', res);
+  return res;
 }
 
 async function assignRoles(guild) {
@@ -333,7 +335,7 @@ function scheduleAssignBaselinePointsFromDate(startDate, intervalInMs, client) {
   const timeUntilNextRun = timeUntilNextRunFromDate(startDate, intervalInMs);
 
   console.log(
-    `Next date for assigning baseline points: ${new Date(Date.now() + timeUntilNextRun).toLocaleString()}`,
+    `Next date for assigning baseline points: ${new Date(Date.now() + timeUntilNextRun).toUTCString()}`,
   );
 
   setTimeout(async () => {
