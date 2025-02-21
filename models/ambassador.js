@@ -13,12 +13,12 @@ const Ambassador = {
   },
   x_user_id: {
     type: Sequelize.STRING,
-    unique: true,
+    unique: false,
     allowNull: true,
   },
   x_screen_name: {
     type: Sequelize.STRING,
-    unique: true,
+    unique: false,
     allowNull: true,
   },
   tweets: {
@@ -33,12 +33,12 @@ const Ambassador = {
   },
   oauth_token: {
     type: Sequelize.STRING,
-    unique: true,
+    unique: false,
     allowNull: true,
   },
   oauth_token_secret: {
     type: Sequelize.STRING,
-    unique: true,
+    unique: false,
     allowNull: true,
   },
   lastBaseLinePointTime: {
