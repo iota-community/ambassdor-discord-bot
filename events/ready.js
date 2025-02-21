@@ -9,10 +9,9 @@ const {
 } = require('../models/database.js');
 const { epochStart, guildId } = require('../config.json');
 const {
-  assignRoles,
-  scheduleTaskFromDate,
+  scheduleRolesUpdatePerEpochFromDate,
+  scheduleAssignBaselinePointsFromDate,
   updatePoints,
-  assignBaseLinePoints,
   // determineEpochWinner,
   EPOCH_IN_SECONDS,
   BASELINE_POINT_AWARD_MILLIS,
@@ -36,7 +35,11 @@ module.exports = {
       // For every 72 hours counted from the epoch start, assign roles to ambassadors
       // and also inform top 3 ambassadors of the epoch.
       const guild = await client.guilds.fetch(guildId);
-      scheduleTaskFromDate(epochStart, EPOCH_IN_SECONDS, assignRoles, guild);
+      scheduleRolesUpdatePerEpochFromDate(
+        epochStart,
+        EPOCH_IN_SECONDS * 1000,
+        guild,
+      );
 
       // Every 30s, check to update points for the "ambassadors" table
       // based on the "messages" table for any messages older than 24 hours.
@@ -48,10 +51,11 @@ module.exports = {
       await States.upsert({ id: DEFAULT_STATE_INDEX, startupTime: new Date() });
 
       // Run and then schedule baseline point assignment and epoch winner determination.
-      await assignBaseLinePoints(client);
-      setInterval(() => {
-        assignBaseLinePoints(client);
-      }, BASELINE_POINT_AWARD_MILLIS);
+      scheduleAssignBaselinePointsFromDate(
+        epochStart,
+        BASELINE_POINT_AWARD_MILLIS,
+        client,
+      );
 
       // TODO
       // setInterval(() => {

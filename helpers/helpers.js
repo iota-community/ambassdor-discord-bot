@@ -188,6 +188,11 @@ async function congratsTop3(guild) {
   }
 }
 
+async function getNextEpochTime() {
+  const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
+  return state.nextEpochTime;
+}
+
 async function assignRoles(guild) {
   try {
     const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
@@ -286,25 +291,9 @@ function isMoreThanGivenMinutes(timestamp, minutes) {
   return currentTime - timestamp > minutes * 60 * 1000;
 }
 
-/**
- * Schedule a task to run at a specified interval in seconds, starting from a given date.
- *
- * @param {Date} startDate - The starting date for the interval.
- * @param {number} intervalInSeconds - Interval in seconds between task executions.
- * @param {function} task - The task to execute.
- * @param {object} guild - The guild (providing access to guild.client).
- */
-function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
-  const intervalInMs = intervalInSeconds * 1000;
+function timeUntilNextRunFromDate(startDate, intervalInMs) {
   const now = new Date();
   const start = new Date(startDate);
-
-  if (isNaN(start)) {
-    throw new Error('Invalid start date provided.');
-  }
-  if (intervalInSeconds < 1) {
-    throw new Error('Interval must be at least one second.');
-  }
 
   const timeSinceStart = now - start;
   let timeUntilNextRun;
@@ -314,21 +303,42 @@ function scheduleTaskFromDate(startDate, intervalInSeconds, task, guild) {
   } else {
     timeUntilNextRun = -timeSinceStart;
   }
+
+  return timeUntilNextRun;
+}
+
+function scheduleRolesUpdatePerEpochFromDate(startDate, intervalInMs, guild) {
+  const timeUntilNextRun = timeUntilNextRunFromDate(startDate, intervalInMs);
+  const nextEpochTime = Date.now() + timeUntilNextRun;
   try {
     States.upsert({
       id: DEFAULT_STATE_INDEX,
-      nextEpochTime: Date.now() + timeUntilNextRun,
+      nextEpochTime,
     });
   } catch (err) {
     console.log(`Error udating next epoch time ${err}`);
   }
 
   console.log(
-    `Next Epoch: ${new Date(now.getTime() + timeUntilNextRun).toLocaleString()}`,
+    `Next Epoch for roles updating: ${new Date(nextEpochTime).toLocaleString()}`,
   );
-  setTimeout(() => {
-    task(guild);
-    setInterval(() => task(guild), intervalInMs);
+
+  setTimeout(async () => {
+    await assignRoles(guild);
+    setInterval(() => assignRoles(guild), intervalInMs);
+  }, timeUntilNextRun);
+}
+
+function scheduleAssignBaselinePointsFromDate(startDate, intervalInMs, client) {
+  const timeUntilNextRun = timeUntilNextRunFromDate(startDate, intervalInMs);
+
+  console.log(
+    `Next date for assigning baseline points: ${new Date(Date.now() + timeUntilNextRun).toLocaleString()}`,
+  );
+
+  setTimeout(async () => {
+    await assignBaseLinePoints(client);
+    setInterval(() => assignBaseLinePoints(client), intervalInMs);
   }, timeUntilNextRun);
 }
 
@@ -438,7 +448,7 @@ async function addPoints(client, msg, curMsgToReply) {
       }
       // Send reply about the status of msg.
       await curMsgToReply.reply(
-        `${msgLatestPoints} Points added to ${ambassador.displayName} for this post.`,
+        `${displayPointsWith2Decimals(msgLatestPoints)} points added to ${ambassador.displayName} for this post.`,
       );
     }
   } catch (error) {
@@ -671,7 +681,8 @@ module.exports = {
   fetchTweet,
   extractTweetId,
   calculatePoints,
-  scheduleTaskFromDate,
+  scheduleRolesUpdatePerEpochFromDate,
+  scheduleAssignBaselinePointsFromDate,
   updatePoints,
   isMoreThanGivenMinutes,
   determineEpochWinner,
@@ -681,4 +692,5 @@ module.exports = {
   EPOCH_IN_SECONDS,
   DEFAULT_STATE_INDEX,
   displayPointsWith2Decimals,
+  getNextEpochTime,
 };

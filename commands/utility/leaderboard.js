@@ -1,6 +1,9 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { Ambassadors } = require('../../models/database.js');
-const { displayPointsWith2Decimals } = require('../../helpers/helpers.js');
+const {
+  displayPointsWith2Decimals,
+  getNextEpochTime,
+} = require('../../helpers/helpers.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -55,12 +58,15 @@ module.exports = {
       }
 */
 
+      let description = `Your current points: ${displayPointsWith2Decimals(currUser.points)}\n`;
+      description += `Next epoch date: ${new Date(getNextEpochTime()).toLocaleString()}\n`;
+      description += `\n`;
+      description += `Here are the top ambassadors by points`;
+
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
         .setTitle('The Ambassadors Leaderboard')
-        .setDescription(
-          `Your current points: ${displayPointsWith2Decimals(currUser.points)}\n\nHere are the top ambassadors by points`,
-        )
+        .setDescription(description)
         .addFields(fields)
         .setTimestamp()
         .setFooter({
