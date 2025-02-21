@@ -19,17 +19,12 @@ async function processMessage(job) {
 
     let tweetId = extractTweetId(message.content);
     if (!tweetId) {
-      await logToDiscord(
-        `⚠️ Unable to extract tweet ID for message: ${message.content}`,
-        message.client,
-      );
       return message.reply(`Unable to extract tweet ID.`);
     }
 
     const tweet = await fetchTweet(tweetId);
     // Tweet deleted or not found
     if (!tweet) {
-      await logToDiscord(`❌ Unable to fetch tweet ${tweetId}`, message.client);
       return message.reply(`Unable to fetch tweet.`);
     }
 
