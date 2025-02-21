@@ -24,19 +24,13 @@ module.exports = {
       const ambassador = await Ambassadors.findOne({
         where: { id: interaction.user.id },
       });
-      if (ambassador) {
-        if (!ambassador.x_user_id) {
-          return interaction.editReply(
-            `Your Discord account (${interaction.user.id}) already linked. Please proceed with the command /authpin for linking with X account.`,
-          );
-        } else {
-          return interaction.editReply(
-            `Your Discord and X accounts already linked. To unlink account, use the command /unlink.`,
-          );
-        }
+      if (ambassador && ambassador.x_user_id) {
+        return interaction.editReply(
+          `Your Discord and X accounts already linked. To unlink account, use the command /unlink.`,
+        );
       } else {
         try {
-          await Ambassadors.create({
+          await Ambassadors.upsert({
             id: interaction.user.id,
             displayName: interaction.user.displayName,
             oauth_token: token,

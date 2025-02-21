@@ -19,9 +19,9 @@ module.exports = {
         const affectedRows = await Ambassadors.update(
           {
             x_user_id: '',
+            x_screen_name: '',
             oauth_token: '',
             oauth_token_secret: '',
-            x_screen_name: '',
           },
           { where: { id: ambassador.id } },
         );
