@@ -190,7 +190,7 @@ async function congratsTop3(guild) {
 
 async function getNextEpochTime() {
   const state = await States.findOne({ where: { id: DEFAULT_STATE_INDEX } });
-  return state.nextEpochTime.toString();
+  return Number(state.nextEpochTime.toString());
 }
 
 async function assignRoles(guild) {
@@ -320,7 +320,7 @@ function scheduleRolesUpdatePerEpochFromDate(startDate, intervalInMs, guild) {
   }
 
   console.log(
-    `Next Epoch for roles updating: ${new Date(nextEpochTime).toLocaleString()}`,
+    `Next Epoch for roles updating: ${new Date(nextEpochTime).toUTCString()}`,
   );
 
   setTimeout(async () => {

@@ -59,7 +59,7 @@ module.exports = {
 */
 
       let description = `Your current points: ${displayPointsWith2Decimals(currUser.points)}\n`;
-      description += `Next epoch date: ${new Date(getNextEpochTime()).toLocaleString()}\n`;
+      description += `Next epoch date: ${new Date(getNextEpochTime()).toUTCString()}\n`;
       description += `\n`;
       description += `Here are the top ambassadors by points`;
 
