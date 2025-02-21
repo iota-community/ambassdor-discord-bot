@@ -36,6 +36,7 @@ async function processMessage(job) {
     tweetId = tweet.id;
 
     if (!tweet.hashtags.includes('IOTAambassador')) {
+      await logToDiscord(`❌ Tweet ${tweetId} not contain #IOTAambassador hashtag: ${JSON.stringify(tweet.hashtags)}`, message.client);
       return message.reply(`Tweet does not contain #IOTAambassador hashtag`);
     }
 
@@ -63,7 +64,7 @@ async function processMessage(job) {
     });
     if (!ambassador) {
       return message.reply(
-        `You have not linked your X ID. Use /linkx command to link your account.`,
+        `You have not linked your X ID. Use /link command to link your account.`,
       );
     }
 
