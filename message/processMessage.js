@@ -35,7 +35,7 @@ async function processMessage(job) {
 
     tweetId = tweet.id;
 
-    if (!tweet.hashtags.includes('IOTAambassador')) {
+    if (!tweet.hashtags.map(el => el.toLowerCase()).includes('iotaambassador') && tweet.text?.toLowerCase().indexOf('iotaambassador') === -1) {
       await logToDiscord(`❌ Tweet ${tweetId} not contain #IOTAambassador hashtag: ${JSON.stringify(tweet.hashtags)}`, message.client);
       return message.reply(`Tweet does not contain #IOTAambassador hashtag`);
     }
