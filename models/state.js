@@ -15,9 +15,6 @@ const State = {
   nextEpochRoundTime: {
     type: Sequelize.BIGINT,
   },
-  startupTime: {
-    type: Sequelize.BIGINT,
-  },
   epoch: {
     type: Sequelize.INTEGER,
     defaultValue: 1,

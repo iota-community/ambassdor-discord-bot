@@ -32,32 +32,6 @@ module.exports = {
         where: { id: interaction.user.id },
       });
 
-      // If adding more fields here to the embed, it will get crashed due to max of 25 fields
-      // TODO: what is this for?
-      /*
-      // Add additional state info if available.
-      const state = await States.findOne({
-        where: { id: DEFAULT_STATE_INDEX },
-      });
-      if (state) {
-        const epochNum = state.epoch ?? 0;
-        fields.push({
-          name: "Current Epoch:",
-          value: `${epochNum}`,
-          inline: true,
-        });
-
-        let nextEpochTime =
-          state.nextEpochTime ??
-          new Date(state.startupTime + EPOCH_IN_SECONDS * 1000);
-        fields.push({
-          name: "⏳ Epoch ends:",
-          value: `${time(new Date(nextEpochTime), TimestampStyles.RelativeTime)} (${time(new Date(nextEpochTime), TimestampStyles.ShortDateTime)})`,
-          inline: false,
-        });
-      }
-*/
-
       const nextEpochTime = await getNextEpochTime();
       let description = `Your current points: ${displayPointsWith2Decimals(currUser.points)}\n`;
       description += `Next epoch date: ${new Date(nextEpochTime).toUTCString()}\n`;

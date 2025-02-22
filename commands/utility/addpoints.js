@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { Ambassadors, EpochPoints } = require('../../models/database.js');
 const { adminRoleId } = require('../../config.json');
+const { updateAmbassadorsAndEpochPoints } = require('../../helpers/helpers.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -19,6 +19,9 @@ module.exports = {
         .setRequired(true),
     ),
   async execute(interaction) {
+    const user = interaction.options.getUser('username');
+    const points = interaction.options.getNumber('points');
+
     try {
       await interaction.deferReply();
 
@@ -29,50 +32,24 @@ module.exports = {
         return interaction.editReply(`Only an admin can execute this command.`);
       }
 
-      const user = interaction.options.getUser('username');
-      const points = interaction.options.getNumber('points');
-
-      Ambassadors.findOne({ where: { id: user.id } }).then((ambassador) => {
-        if (ambassador) {
-          const prevPoints = ambassador.points;
-          Ambassadors.update(
-            { points: prevPoints + points },
-            { where: { id: ambassador.id } },
-          ).then((affectedRows) => {
-            if (affectedRows > 0) {
-              try {
-                EpochPoints.findOne({ where: { id: ambassador.id } }).then(
-                  (ambassadorPoint) => {
-                    if (ambassadorPoint) {
-                      EpochPoints.update(
-                        { points: ambassadorPoint.points + points },
-                        { where: { id: ambassadorPoint.id } },
-                      );
-                    } else {
-                      EpochPoints.create({
-                        id: ambassador.id,
-                        points: points,
-                        channelId: interaction.channelId,
-                      });
-                    }
-                  },
-                );
-              } catch (err) {
-                console.log(`Error updating epoch point: ${err}`);
-              }
-              interaction.editReply(
-                `${points} Points added to ${user.username}  successfully.`,
-              );
-            }
-          });
-        } else {
-          return interaction.editReply(
-            `Failed to add ${points} Points to ${user.username}`,
-          );
-        }
-      });
+      const success = await updateAmbassadorsAndEpochPoints(
+        user.id,
+        points,
+        interaction.channelId,
+        true,
+      );
+      if (success) {
+        return interaction.editReply(
+          `${points} points added to ${user.username} successfully.`,
+        );
+      } else {
+        return interaction.editReply(`Not found user ${user.username}`);
+      }
     } catch (error) {
-      console.error('❗ Error in addpoints cmd:', error);
+      console.error('❗ Error in addpoints cmd:', error.message);
+      return interaction.editReply(
+        `Failed to add points to the user ${user.username}.`,
+      );
     }
   },
 };
