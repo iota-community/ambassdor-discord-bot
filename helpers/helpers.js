@@ -169,13 +169,13 @@ async function congratsEpochWinners(guild) {
         attributes: ['id', 'displayName', 'x_screen_name'],
       });
 
-      congratulatoryMsg += `${congratulatoryEmoji[idx]} <@${ambassador.displayName}> with **${topEpochPoints.points} points**\n`;
+      congratulatoryMsg += `${congratulatoryEmoji[idx]} <@${ambassador.id}> with ${displayPointsWith2Decimals(topEpochPoints.points)} points\n`;
     }
 
     const chan = await guild.client.channels.fetch(
       epoch_winners_channel_id || '1339587440444313622',
     );
-    await chan.send(congratulatoryHeader + `\n` + congratulatoryMsg);
+    await chan.send(congratulatoryHeader + `\n\n` + congratulatoryMsg);
 
     await chan.send('Roles updated. Check it out!');
   } catch (error) {
@@ -470,9 +470,9 @@ async function assignBaseLinePoints(client) {
         const curMsg = await channel.messages.fetch(tweet.messageId);
         if (!curMsg) continue; // Skip if message is not found
 
-        const ambassadorName = await addBaselinePoints(client, tweet);
-        if (ambassadorName) {
-          ambassadorList += `<@${ambassadorName}> `;
+        const ambassadorId = await addBaselinePoints(client, tweet);
+        if (ambassadorId) {
+          ambassadorList += `<@${ambassadorId}>  `;
         }
       } catch (err) {
         console.error(
@@ -489,7 +489,7 @@ async function assignBaseLinePoints(client) {
     if (ambassadorList !== '') {
       await channel.send(
         `🎉 Great job! The following ones have earned ${BASELINE_POINT} points for posting in the last 24 hours.` +
-          '\n' +
+          '\n\n' +
           ambassadorList,
       );
     }
@@ -523,7 +523,7 @@ async function addBaselinePoints(client, tweet) {
         },
         { where: { id: ambassador.id } },
       );
-      return ambassador.displayName;
+      return ambassador.id;
     }
   } catch (error) {
     console.error('Error in addBaselinePoints:', error);
