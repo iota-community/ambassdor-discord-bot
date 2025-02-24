@@ -8,7 +8,11 @@ const {
 } = require('../models/database.js');
 const { Sequelize, Op } = require('sequelize');
 const { EmbedBuilder, time, TimestampStyles } = require('discord.js');
-const { log_channel_id, epoch_winners_channel_id } = require('../config.json');
+const {
+  log_channel_id,
+  epoch_winners_channel_id,
+  epochStart,
+} = require('../config.json');
 
 // Constants
 const NOVICE_MAX = 749; // 249;
@@ -28,7 +32,8 @@ const INTERMEDIATE_ROLE = 'Seeder';
 const ADVANCED_ROLE = 'Innovator';
 const EXPERT_ROLE = 'Visionary';
 
-const EPOCH_IN_MILLIS = 72 * 60 * 60 * 1000; // 3 days
+const EPOCH_IN_DAYS = 3; // 3 days
+const EPOCH_IN_MILLIS = EPOCH_IN_DAYS * 24 * 60 * 60 * 1000;
 const BASELINE_POINT_AWARD_MILLIS = 24 * 60 * 60 * 1000; // 24 hours
 const TWENTY_FOUR_HOURS_IN_MILLIS = 24 * 60 * 60 * 1000;
 const ADD_POINTS_TO_AMBASSADORS_IN_MILLIS = 30 * 1000; // 30s
@@ -158,24 +163,32 @@ async function congratsEpochWinners(guild) {
       return;
     }
 
-    let congratulatoryHeader = `🎉 Top 3 Congratulations`;
+    let congratulatoryHeader = `🎉 Congratulations `;
     let congratulatoryMsg = '';
     const congratulatoryEmoji = ['🏆', '🏅', '🎖️'];
+    const congratulatoryFooter = 'Keep up the great work!';
 
     for (let idx = 0; idx < topEpochPointsList.length; idx++) {
       const topEpochPoints = topEpochPointsList[idx];
-      const ambassador = await Ambassadors.findOne({
-        where: { id: topEpochPoints.id },
-        attributes: ['id', 'displayName', 'x_screen_name'],
-      });
-
-      congratulatoryMsg += `${congratulatoryEmoji[idx]} <@${ambassador.id}> with ${displayPointsWith2Decimals(topEpochPoints.points)} points\n`;
+      congratulatoryHeader += `<@${topEpochPoints.id}> `;
+      congratulatoryMsg += `${congratulatoryEmoji[idx]} <@${topEpochPoints.id}> with **${displayPointsWith2Decimals(topEpochPoints.points)} points!**\n`;
     }
+
+    const epochX = getCurrentEpochXFromDate(epochStart, EPOCH_IN_DAYS);
+    congratulatoryHeader += epochX
+      ? `\nYou scored highest in Epoch ${epochX}`
+      : '';
 
     const chan = await guild.client.channels.fetch(
       epoch_winners_channel_id || '1339587440444313622',
     );
-    await chan.send(congratulatoryHeader + `\n\n` + congratulatoryMsg);
+    await chan.send(
+      congratulatoryHeader +
+        `\n\n` +
+        congratulatoryMsg +
+        `\n` +
+        congratulatoryFooter,
+    );
 
     await chan.send('Roles updated. Check it out!');
   } catch (error) {
@@ -296,6 +309,22 @@ function timeUntilNextRunFromDate(startDate, intervalInMs) {
   }
 
   return timeUntilNextRun;
+}
+
+function getCurrentEpochXFromDate(startDate, intervalInDays) {
+  try {
+    const now = new Date();
+    const start = new Date(startDate);
+
+    const timeSinceStart = now - start;
+    const daysElapsed = Math.ceil(timeSinceStart / (24 * 60 * 60 * 1000));
+    const epochX = Math.floor(daysElapsed / intervalInDays);
+
+    return epochX;
+  } catch (error) {
+    console.error('Error in getCurrentEpochXFromDate:', error.message);
+    return null;
+  }
 }
 
 function scheduleRolesUpdateAndEpochWinnersFromDate(
