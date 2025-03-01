@@ -33,7 +33,9 @@ module.exports = {
       });
 
       const nextEpochTime = await getNextEpochTime();
-      let description = `Your current points: ${displayPointsWith2Decimals(currUser.points)}\n`;
+      let description = currUser
+        ? `Your current points: ${displayPointsWith2Decimals(currUser.points)}\n`
+        : 'You have not linked your X ID. Use /link command to link your account.\n';
       description += `Next epoch date: ${new Date(nextEpochTime).toUTCString()}\n`;
       description += `\n`;
       description += `Here are the top ambassadors by points`;

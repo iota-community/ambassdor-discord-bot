@@ -1,7 +1,7 @@
 const {
   fetchTweet,
   extractTweetId,
-  has72HoursPassed,
+  isOlderThan24Hours,
   logToDiscord,
   calculatePoints,
   displayPointsWith2Decimals,
@@ -47,10 +47,15 @@ async function processMessage(job) {
       return message.reply(`This is a retweeted tweet.`);
     }
 
-    if (has72HoursPassed(tweet.timestamp)) {
-      return message.reply(
-        `72 hours have passed since the post was made on X.`,
-      );
+    if (isOlderThan24Hours(tweet.timestamp)) {
+      try {
+        return message.reply(
+          `Rejected Tweet created on ${new Date(tweet.timestamp).toUTCString()} as older than 24 hours!`,
+        );
+      } catch (error) {
+        console.error('❗ Error processing message:', error?.message);
+        return message.reply(`Rejected Tweet as older than 24 hours!`);
+      }
     }
 
     const dupTweet = await Tweets.findOne({ where: { id: tweetId } });

@@ -289,6 +289,12 @@ function has72HoursPassed(timestamp) {
   return currentTime - givenTimeInMs >= SEVENTY_TWO_HOURS_IN_MILLIS;
 }
 
+function isOlderThan24Hours(timestamp) {
+  const currentTime = Date.now();
+  const givenTimeInMs = timestamp * 1000;
+  return currentTime - givenTimeInMs >= TWENTY_FOUR_HOURS_IN_MILLIS;
+}
+
 // Return true if more than the given number of minutes have passed since the timestamp.
 function isMoreThanGivenMinutes(timestamp, minutes) {
   const currentTime = Date.now();
@@ -703,4 +709,5 @@ module.exports = {
   displayPointsWith2Decimals,
   getNextEpochTime,
   updateAmbassadorsAndEpochPoints,
+  isOlderThan24Hours,
 };
