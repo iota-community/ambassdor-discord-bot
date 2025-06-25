@@ -1,0 +1,8 @@
+services:
+  bot:
+    build: .
+    container_name: ambassdor-discord-bot
+    restart: always
+    volumes:
+      - ./config.json:/app/config.json
+      - ./data:/app/data

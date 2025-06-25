@@ -1,0 +1,32 @@
+{
+  "name": "ambassador-discord-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "fs-extra": "^11.3.0",
+    "he": "^1.2.0",
+    "node-telegram-bot-api": "^0.63.0",
+    "p-queue": "^8.1.0",
+    "sequelize": "^6.37.5",
+    "sqlite3": "^5.1.7",
+    "twitter-api-v2": "^1.18.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.20.1",
+    "globals": "^15.15.0",
+    "prettier": "^3.5.1"
+  }
+}
